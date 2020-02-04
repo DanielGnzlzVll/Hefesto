@@ -20,7 +20,7 @@ services:
     user: root
     networks:
       - postgres
-      - proxie
+      - nginx_proxy
     links:
       - postgres
     restart: always
@@ -55,7 +55,7 @@ services:
     image: hefesto
     entrypoint: python manage.py runserver 0.0.0.0:8000 --insecure --noreload
     networks:
-      - proxie
+      - nginx_proxy
       - postgres
     links:
       - postgres
@@ -86,13 +86,13 @@ services:
     privileged: true
   
   web:
-    container_name: proxie
+    container_name: nginx_proxy
     image: nginx:alpine
     volumes:
       # la z (minuscula) permite el acceso a archivo protegidos por SELinux
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:z
     networks:
-      - proxie
+      - nginx_proxy
     links:
       - grafana
       - webapp
@@ -105,7 +105,7 @@ services:
 
 networks:
   postgres:
-  proxie:
+  nginx_proxy:
     
 volumes:
   grafana_data:

@@ -1,0 +1,114 @@
+version: '3.7'
+
+services:
+  postgres:
+    container_name: postgres_container
+    image: postgres:10.7-alpine
+    environment:
+      POSTGRES_DB: hefestodb
+      POSTGRES_USER: hefesto
+      POSTGRES_PASSWORD: H3f3st0_s3cr3t
+    networks:
+      - postgres
+    restart: always
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  grafana:
+    container_name: grafana_container
+    image: grafana/grafana:6.6.0-ubuntu
+    user: root
+    networks:
+      - postgres
+      - proxie
+    links:
+      - postgres
+    restart: always
+    volumes:
+      # la z (minuscula) permite el acceso a archivo protegidos por SELinux
+      - ./grafana/provisioning:/usr/share/grafana/provisioning:z
+      - grafana_data:/var/lib/grafana
+    environment: 
+      - GF_INSTALL_PLUGINS=natel-discrete-panel
+      # - GF_PATHS_CONFIG:/usr/grafana/custom.ini
+      - GF_PATHS_PROVISIONING=/usr/share/grafana/provisioning
+      - GF_SERVER_ROOT_URL=http://localhost/grafana/
+    depends_on:
+      - postgres
+    
+  # container para ejecutar migraciones Django
+  migrate:
+    build: ./App
+    image: hefesto
+    command: python manage.py migrate
+    networks:
+      - postgres
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    volumes:
+      - ./App:/usr/src/hefesto:z
+
+  webapp:
+    container_name: hefesto_web_app
+    image: hefesto
+    entrypoint: python manage.py runserver 0.0.0.0:8000 --insecure --noreload
+    networks:
+      - proxie
+      - postgres
+    links:
+      - postgres
+    depends_on:
+      - postgres
+      - grafana
+      - migrate
+    restart: always
+    volumes:
+      - /etc/wpa_supplicant/wpa_supplicant.conf:/etc/wpa_supplicant/wpa_supplicant.conf:z
+      - ./App:/usr/src/hefesto:z
+    privileged: true
+
+  processor:
+    container_name: hefesto_processor
+    image: hefesto
+    entrypoint: bash -c "python manage.py hefesto_processor"
+    networks:
+      - postgres
+    links:
+      - postgres
+    depends_on:
+      - postgres
+      - webapp
+    restart: always
+    volumes:
+      - ./App:/usr/src/hefesto:z
+    privileged: true
+  
+  web:
+    container_name: proxie
+    image: nginx:alpine
+    volumes:
+      # la z (minuscula) permite el acceso a archivo protegidos por SELinux
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:z
+    networks:
+      - proxie
+    links:
+      - grafana
+      - webapp
+    ports:
+      - "80:80"
+    depends_on:
+      - grafana
+      - webapp
+    restart: always
+
+networks:
+  postgres:
+  proxie:
+    
+volumes:
+  grafana_data:
+  hefesto:
+  pgdata:
+

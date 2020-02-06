@@ -66,7 +66,7 @@ def get_sas_token_from_connection_string(connection_string):
     conn = parse_connection_string(connection_string)
     uri = conn.get(HOST_NAME)
     uri += "/devices/"
-    uri += conn.get("DeviceId")
+    uri += conn.get(DEVICE_ID)
     token = generate_sas_token(uri, conn.get(SHARED_ACCESS_KEY), None)
     return token
 
@@ -74,8 +74,8 @@ def get_sas_token_from_connection_string(connection_string):
 def transmit(data, config):
     conn = parse_connection_string(config.connection_string)
     token = get_sas_token_from_connection_string(config.connection_string)
-    iotHub = conn.get("HostName")
-    deviceId = conn.get("DeviceId")
+    iotHub = conn.get(HOST_NAME)
+    deviceId = conn.get(DEVICE_ID)
 
     additional_headers = {
         "Content-Type": "application/json",
@@ -144,14 +144,14 @@ def get_data():
         config = models.Client.get_solo()
         conn = parse_connection_string(config.connection_string)
         token = get_sas_token_from_connection_string(config.connection_string)
-        iotHub = conn.get("HostName")
-        deviceId = conn.get("deviceId")
+        iotHub = conn.get(HOST_NAME)
+        deviceId = conn.get(DEVICE_ID)
+        additional_headers = {"Authorization": token}
         try:
             uri = (
                 f"https://{iotHub}/devices/{deviceId}/messages/deviceBound?"
                 "api-version=2018-04-01"
             )
-            additional_headers = {"Authorization": token}
             response = requests.get(
                 uri, headers=additional_headers, timeout=10,
             )
@@ -162,27 +162,31 @@ def get_data():
             continue
 
         if response.status_code < 300:
-            msg = response.body
-            etag = response.headers.get("etag")
-            logger.info(f"Mensaje recibido: {etag}")
-            logger.info(f"Cuerpo mensaje: {msg}")
-            core_services.process_message_from_server(json.dumps(msg))
+            etag = response.headers.get("etag", "").replace('"', "")
             if etag:
+                logger.info(f"Mensaje recibido: {etag}")
+                logger.info(f"Cuerpo mensaje: {response.content}")
+                reject = True
+                try:
+                    core_services.process_message_from_server(response.json())
+                except:  # noqa
+                    reject = False
                 uri = (
                     f"https://{iotHub}/devices/{deviceId}/messages/"
                     f"deviceBound/{etag}?api-version=2018-04-01"
                 )
-                reject = False
                 if reject:
                     uri += "&reject"
-
-                response = requests.delete(
-                    uri, headers=additional_headers, timeout=10,
-                )
-                if reject:
-                    logger.info("Mensaje rechazado: {etag}")
-                else:
-                    logger.info("Mensaje completado: {etag}")
+                try:
+                    _ = requests.delete(
+                        uri, headers=additional_headers, timeout=10,
+                    )
+                    if reject:
+                        logger.info(f"Mensaje rechazado: {etag}")
+                    else:
+                        logger.info(f"Mensaje completado: {etag}")
+                except:  # noqa
+                    pass
         else:
             logger.error(
                 "Solicitud de datos  fallida {} - {}".format(

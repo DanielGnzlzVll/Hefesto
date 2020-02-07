@@ -53,6 +53,7 @@ def get_data2send():
         timeserie_json["context"] = timeserie.context
         timeseries_list.append(timeserie_json)
     if len(timeseries_list) > 0:
+        timeseries_list.reverse()
         return (
             {"TIMESERIES": timeseries_list},
             success_callback,

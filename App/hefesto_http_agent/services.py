@@ -69,7 +69,7 @@ def send_data():
         try:
             response = transmit(payload, config)
         except Exception as e:  # noqa
-            logger.error("Transmision fallida")
+            logger.error(f"Transmision fallida: {e}")
             logger.debug(e)
             time.sleep(config.tiempo_entre_envios * 2)
             continue

@@ -117,7 +117,7 @@ def send_data():
         try:
             response = transmit(payload, config)
         except Exception as e:  # noqa
-            logger.error("Transmision fallida")
+            logger.error(f"Transmision fallida: {e}")
             logger.debug(e)
             time.sleep(config.tiempo_entre_envios * 2)
             continue
@@ -156,7 +156,7 @@ def get_data():
                 uri, headers=additional_headers, timeout=10,
             )
         except Exception as e:  # noqa
-            logger.error("Solicitud de datos fallida")
+            logger.error("Solicitud de datos fallida: {e}")
             logger.debug(e)
             time.sleep(config.tiempo_entre_peticiones * 2)
             continue

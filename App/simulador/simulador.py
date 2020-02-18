@@ -183,7 +183,7 @@ def main(*args, **config):
         except requests.exceptions.ReadTimeout:
             logger.error("El servidor no responde.")
         except Exception as e:  # noqa
-            logger.error("Transmision fallida")
+            logger.error(f"Transmision fallida: {e}")
             logger.exception(e)
             _sleep(config.get("tiempo_entre_envios", 30))
         _sleep(config.get("tiempo_entre_envios", 30))

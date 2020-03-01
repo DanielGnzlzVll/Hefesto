@@ -13,7 +13,7 @@ class HefestoHttpAgentConfig(AppConfig):
         try:
             t, _ = hmodels.Task.objects.get_or_create(name="http_send_data")
             t.command = "python manage.py http_send_data"
-            t.cron_expression = "*/5 * * * *"
+            t.cron_expression = "*/1 * * * *"
             t.hidden = True
             t.save()
         except:  # noqa

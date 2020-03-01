@@ -9,7 +9,7 @@ class HefestoModbusConfig(AppConfig):
         try:
             t, _ = hmodels.Task.objects.get_or_create(name="modbus_daemon")
             t.command = "python manage.py modbus_daemon"
-            t.cron_expression = "*/5 * * * *"
+            t.cron_expression = "*/1 * * * *"
             t.hidden = True
             t.save()
         except:  # noqa

@@ -12,7 +12,7 @@ class HefestoAzureIothubConfig(AppConfig):
                 name="azure_iothub_send_data"
             )
             t.command = "python manage.py azure_send_data"
-            t.cron_expression = "*/5 * * * *"
+            t.cron_expression = "*/1 * * * *"
             t.hidden = True
             t.save()
         except:  # noqa
@@ -22,7 +22,7 @@ class HefestoAzureIothubConfig(AppConfig):
                 name="azure_iothub_get_data"
             )
             t.command = "python manage.py azure_get_data"
-            t.cron_expression = "*/5 * * * *"
+            t.cron_expression = "*/1 * * * *"
             t.hidden = True
             t.save()
         except:  # noqa

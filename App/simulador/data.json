@@ -1,126 +1,42 @@
-{
-  "HEFESTO_ID":"hefesto_001",
-  "TIMESERIES":[
-    {
-      "timestamp":1578944961.1244025,
-      "var_name":"NombreConsulta__0__NombreVariable0",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"NombreConsulta",
-        "var_name":"NombreVariable0",
-        "device":"0"
-      }
-    },
-    {
-      "timestamp":1578944964.1244025,
-      "var_name":"NombreConsulta__0__NombreVariable1",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"NombreConsulta",
-        "var_name":"NombreVariable1",
-        "device":"0"
-      }
-    },
-    {
-      "timestamp":1578944963.1244025,
-      "var_name":"NombreConsulta__0__NombreVariable2",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"NombreConsulta",
-        "var_name":"NombreVariable2",
-        "device":"0"
-      }
-    },
-    {
-      "timestamp":1578944959.1244025,
-      "var_name":"NombreConsulta__1__NombreVariable0",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"NombreConsulta",
-        "var_name":"NombreVariable0",
-        "device":"1"
-      }
-    },
-    {
-      "timestamp":1578944959.1244025,
-      "var_name":"NombreConsulta__1__NombreVariable1",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"NombreConsulta",
-        "var_name":"NombreVariable1",
-        "device":"1"
-      }
-    },
-    {
-      "timestamp":1578944964.1244025,
-      "var_name":"NombreConsulta__1__NombreVariable2",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"NombreConsulta",
-        "var_name":"NombreVariable2",
-        "device":"1"
-      }
-    },
-    {
-      "timestamp":1578944959.1244025,
-      "var_name":"NombreConsulta__0__OtroNombreVariable",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"NombreConsulta",
-        "var_name":"OtroNombreVariable",
-        "device":"0"
-      }
-    },
-    {
-      "timestamp":1578944968.1244025,
-      "var_name":"NombreConsulta__1__OtroNombreVariable",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"NombreConsulta",
-        "var_name":"OtroNombreVariable",
-        "device":"1"
-      }
-    },
-    {
-      "timestamp":1578944959.1244025,
-      "var_name":"OtroNombreConsulta__0__NombreVariable",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"OtroNombreConsulta",
-        "var_name":"NombreVariable",
-        "device":"0"
-      }
-    },
-    {
-      "timestamp":1578944964.1244025,
-      "var_name":"OtroNombreConsulta__1__NombreVariable",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"OtroNombreConsulta",
-        "var_name":"NombreVariable",
-        "device":"1"
-      }
-    },
-    {
-      "timestamp":1578944960.1244025,
-      "var_name":"OtroNombreConsulta__2__NombreVariable",
-      "value":58.12440252304077,
-      "plugin":"MODBUS",
-      "context":{
-        "request":"OtroNombreConsulta",
-        "var_name":"NombreVariable",
-        "device":"2"
-      }
-    }
-  ]
-}
+{	"HEFESTO_ID":"hefesto_001",
+	  "TIMESERIES":[{
+	      "timestamp":1578944961.1244025,
+	      "var_name":"Consulta prueba__10__Energia",
+	      "value":58.12440252304077,
+	      "plugin":"MODBUS",
+	      "context":{"request":"Consulta prueba",
+	        "var_name":"Energia",
+	        "device":"10"}
+	    }, {
+	      "timestamp":1578944964.1244025,
+	      "var_name":"Consulta prueba__10__FactorDePotencia",
+	      "value":58.12440252304077,
+	      "plugin":"MODBUS",
+	      "context":{"request":"Consulta prueba",
+	        "var_name":"FactorDePotencia",
+	        "device":"10"}
+	    }, {
+	      "timestamp":1578944963.1244025,
+	      "var_name":"Consulta prueba__10__Voltaje__1",
+	      "value":58.12440252304077,
+	      "plugin":"MODBUS",
+	      "context":{"request":"Consulta prueba",
+	        "var_name":"Voltaje__1",
+	        "device":"10"}
+	    }, {
+	      "timestamp":1578944959.1244025,
+	      "var_name":"Consulta prueba__10__Voltaje__2",
+	      "value":58.12440252304077,
+	      "plugin":"MODBUS",
+	      "context":{"request":"Consulta prueba",
+	        "var_name":"Voltaje__2",
+	        "device":"10"}
+	    }, {
+	      "timestamp":1578944959.1244025,
+	      "var_name":"Consulta prueba__10__Voltaje__3",
+	      "value":58.12440252304077,
+	      "plugin":"MODBUS",
+	      "context":{"request":"Consulta prueba",
+	        "var_name":"Voltaje__3",
+	        "device":"10"}
+	    }]}

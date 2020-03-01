@@ -156,7 +156,7 @@ def get_data():
                 uri, headers=additional_headers, timeout=10,
             )
         except Exception as e:  # noqa
-            logger.error("Solicitud de datos fallida: {e}")
+            logger.error(f"Solicitud de datos fallida: {e}")
             logger.debug(e)
             time.sleep(config.tiempo_entre_peticiones * 2)
             continue

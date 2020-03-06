@@ -310,7 +310,11 @@ def parse_variables_lectura(consulta, dev, request_raw, response_raw):
             "plugin": f"MODBUS {consulta.tipo_conexion}",
         }
         for item in range(1, var.cantidad + 1):
-
+            item_dic["context"] = {
+                "request": consulta.nombre,
+                "var_name": var.nombre,
+                "device": dev,
+            }
             var_name = f"{consulta.nombre}__{dev}__{var.nombre}"
             if var.cantidad > 1:
                 var_name += f"__{item}"

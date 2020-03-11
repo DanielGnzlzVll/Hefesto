@@ -57,16 +57,6 @@ cd Hefesto
 docker-compose up
 ```
 
-### Crear usuario
-```console
-[daniel@daniel Hefesto]$ docker exec -it hefesto_container python manage.py createsuperuser 
-Nombre de usuario: admin      
-Dirección de correo electrónico: admin@example.com
-Password: 
-Password (again): 
-Superuser created successfully.
-[daniel@daniel Hefesto]$
-``` 
 
 ### Configuracion
 ir a la pagina de [Configuracion](http://localhost/hefesto/admin/)

@@ -1,11 +1,13 @@
+import datetime
 import logging
 import subprocess
 import time
 
+import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from django.core.management.base import BaseCommand
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_delete, post_save
 
 from ... import models
 
@@ -47,8 +49,11 @@ def on_save_task(sender, instance, created, **kwargs):
         try:
             scheduler.add_job(
                 function_wrap(instance.command),
-                CronTrigger.from_crontab(instance.cron_expression),
+                CronTrigger.from_crontab(
+                    instance.cron_expression, timezone=pytz.UTC
+                ),
                 id=str(instance),
+                next_run_time=datetime.datetime.now(tz=pytz.UTC),
             )
             logger.info(f"la tarea '{instance}' fue creada correctamente")
         except Exception as e:
@@ -65,8 +70,11 @@ class Command(BaseCommand):
         for task in tasks:
             sheduler.add_job(
                 function_wrap(task.command),
-                CronTrigger.from_crontab(task.cron_expression),
+                CronTrigger.from_crontab(
+                    task.cron_expression, timezone=pytz.UTC
+                ),
                 id=str(task),
+                next_run_time=datetime.datetime.now(tz=pytz.UTC),
             )
         post_delete.connect(
             on_delete_task, sender=models.Task, dispatch_uid="on_delete_task"

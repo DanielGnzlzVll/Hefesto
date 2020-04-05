@@ -23,7 +23,7 @@ class DeviceConfiguration(SingletonModel):
 class TimeSerie(models.Model):
     time = models.DateTimeField(default=now)
     name = models.CharField(max_length=50, blank=False, null=False)
-    value = models.FloatField()
+    value = JSONField(default=dict)
     plugin = models.CharField(max_length=50, blank=False, null=False)
     context = JSONField(null=True, blank=True, default=dict)
     exported = models.NullBooleanField(null=True, default=False)

@@ -44,7 +44,8 @@ network={{
         psk="{}"
         scan_ssid=1
 }}
-##HEFESTO_WIFI"""
+##HEFESTO_WIFI
+"""
 
     new_content = new_content_template.format(ssid, key)
     new_wpa = wpa_content_clean + new_content

@@ -143,41 +143,48 @@ def check_not_errors_rtu(requets_raw, response_raw, consulta):
     OK = 1
     # codigo funcion y id no concuerdan con el requests
     if requets_raw[:2] != response_raw[:2]:
-        logger.info("aqui")
+        logger.error(
+            "Codigo de funcion y id del dispositivo no coincide con la consula"
+        )
         OK = 0
 
     if consulta.codigo_funcion in ([3, 4]):
         # la longitud de datos no coincide con la que reporta el esclavo
         if len(response_raw) != (response_raw[2] + 3):
-            logger.info("aqui")
+            logger.error(
+                "La longitud de datos recibida no coincide con la reportada"
+            )
             OK = 0
 
         # no es la longitud esperada
         if len(response_raw) != (3 + consulta.numero_registros * 2):
-            logger.info("aqui")
+            logger.error(
+                "La longitud de de la respuesta recibida no es la esperada"
+            )
             OK = 0
 
     if consulta.codigo_funcion == 6:
         if len(response_raw) != 6:
-            logger.info("aqui")
+            logger.error("El codigo de funcion en la respuesta no coincide")
             OK = 0
 
         # direccion del registro
+        # TODO: 
         if response_raw[2:4] != response_raw[2:4]:
-            logger.info("aqui")
             OK = 0
+
 
     if consulta.codigo_funcion == 16:
         # direccion del registro
+        # TODO:
         if response_raw[2:4] != response_raw[2:4]:
-            logger.info("aqui")
             OK = 0
 
         # int.from_bytes(response_raw[-2:], "big") numero de registros escritos
         if int.from_bytes(response_raw[-2:], "big") != (
             consulta.numero_registros
         ):
-            logger.info("aqui")
+            logger.error("El numero de registros escritos no coincide")
             OK = 0
 
     return OK
@@ -351,6 +358,7 @@ def guardar_variables(var_list):
 
     for item in var_list:
         try:
+            logger.debug(f"Guardando ModbusTimeserie: {item}")
             models.ModbusTimeSerie.objects.create(**item)
         except Exception as e:
             logger.error("Imposible crear modbus timeseries")

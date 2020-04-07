@@ -17,6 +17,8 @@ Como herramienta de visualizacion usa [Grafana](https://grafana.com/)
 1. Hacer test
 1. Imagen/Logo
 1. Roadmap
+    1. Meta requests en Hefesto_modbus
+    1. Motor de calculos
     1. Plugins
         1. Entradas
             1. Regex serial
@@ -60,6 +62,10 @@ docker-compose up
 
 ### Configuracion
 ir a la pagina de [Configuracion](http://localhost/hefesto/admin/)
+
+### Estructura de la base de datos:
+
+![Alt](docs/assets/models.png)
 
 ## Bugs
 Reporta cualquier bug a mediante correo electronico o crea un [Issue!](https://github.com/DanielGnzlzVll/Hefesto/issues/new)

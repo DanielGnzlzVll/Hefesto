@@ -169,6 +169,7 @@ TIPOS_DATOS = (
     (">Q", "uint64"),
     (">f", "float32"),
     (">d", "float64"),
+    ("s", "ascii"),
 )
 BYTE_ORDERS = (
     ("AB", "AB"),
@@ -193,6 +194,7 @@ class VariableLectura(models.Model):
         blank=False,
         null=False,
     )
+    longitud_texto = models.IntegerField(default=1, null=True, blank=True)
     byte_order = models.CharField(
         max_length=8,
         choices=BYTE_ORDERS,
@@ -236,6 +238,9 @@ class VariableLectura(models.Model):
         return self.nombre
 
     def save(self, *args, **kargs):
+        if self.tipo_dato != "s":
+            self.longitud_texto = 1
+
         if self.consulta.codigo_funcion in ([3, 4]):
             super(VariableLectura, self).save(*args, **kargs)
 
@@ -243,9 +248,20 @@ class VariableLectura(models.Model):
         if self.consulta.codigo_funcion in ([3, 4]):
             errors = {}
             len_tipo_dato = struct.calcsize(self.tipo_dato)
+            len_tipo_dato *= self.longitud_texto
             len_byteorder = len(self.byte_order)
-            if len_byteorder != len_tipo_dato and len_tipo_dato > 1:
+            
+            if (
+                len_byteorder != len_tipo_dato and len_tipo_dato > 1
+            ) and self.tipo_dato != "s":
                 errors["tipo_dato"] = "Tipo dato y byte order no compatibles"
+            
+            if self.tipo_dato != "s" and self.longitud_texto != 1:
+                errors["longitud_texto"] = (
+                    "No se permite una longitud de"
+                    "texto diferente a '1' para este tipo de dato"
+                )
+            
             if (
                 self.consulta.numero_registros * 2
                 < len_tipo_dato * self.cantidad
@@ -256,6 +272,7 @@ class VariableLectura(models.Model):
                 errors[
                     "cantidad"
                 ] = "Cantidad no concuerda con el numero de registros a leer"
+            
             if len(errors) > 0:
                 raise ValidationError(
                     {

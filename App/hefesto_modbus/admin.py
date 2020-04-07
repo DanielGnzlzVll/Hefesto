@@ -14,6 +14,12 @@ class VariableLecturaInline(admin.TabularInline):
             return 0
         return self.extra
 
+    class Media:
+        js = (
+            r"admin/js/jquery.init.js",
+            r"hefesto_modbus/js/hefesto_modbus_ascii.js",
+        )
+
 
 class VariableEscrituraInline(admin.TabularInline):
     model = models.VariableEscritura

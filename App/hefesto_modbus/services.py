@@ -289,13 +289,18 @@ def order_data(data, byte_order):
 
 
 def extract_data(data, var, item):
-    size = struct.calcsize(var.tipo_dato)
+    size = struct.calcsize(var.tipo_dato) * var.longitud_texto
+    tipo_dato = var.tipo_dato
+    if var.tipo_dato == "s":
+        tipo_dato = f"{int(size)}{tipo_dato}"
     data = data[(var.desplazamiento) + (item - 1) * size :]  # noqa: E203
     data = data[:size]
-    data_reordered = order_data(data, var.byte_order)
+    data_reordered = (
+        order_data(data, var.byte_order) if "s" not in tipo_dato else data
+    )
     if size != len(data_reordered):
         raise IncorrectSize(f"{size} != {len(data_reordered)}")
-    [value] = struct.unpack(var.tipo_dato, data_reordered)
+    [value] = struct.unpack(tipo_dato, data_reordered)
     return value
 
 
@@ -332,7 +337,13 @@ def parse_variables_lectura(consulta, dev, request_raw, response_raw):
             except IncorrectSize:
                 continue
 
-            item_dic["value"] = (float(value_raw) * var.escala) + var.offset
+            if var.tipo_dato == "s":
+                item_dic["value"] = value_raw.decode().replace("\x00", "")
+            else:
+                item_dic["value"] = (
+                    float(value_raw) * var.escala
+                ) + var.offset
+
             var_list.append(item_dic.copy())
     return var_list
 

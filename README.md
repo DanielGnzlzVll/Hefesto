@@ -74,4 +74,3 @@ Reporta cualquier bug a mediante correo electronico o crea un [Issue!](https://g
 
 
 
-

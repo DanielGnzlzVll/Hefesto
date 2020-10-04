@@ -13,6 +13,10 @@ services:
     restart: always
     volumes:
       - pgdata:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 50M
 
   grafana:
     container_name: grafana_container
@@ -35,6 +39,10 @@ services:
       - GF_SERVER_ROOT_URL=http://localhost/grafana/
     depends_on:
       - postgres
+    deploy:
+      resources:
+        limits:
+          memory: 50M
     
   # container para ejecutar migraciones Django
   migrate:
@@ -49,6 +57,10 @@ services:
       - postgres
     volumes:
       - ./App:/usr/src/hefesto:z
+    deploy:
+      resources:
+        limits:
+          memory: 200M
 
   webapp:
     container_name: hefesto_web_app
@@ -68,6 +80,10 @@ services:
       - /etc/wpa_supplicant/wpa_supplicant.conf:/etc/wpa_supplicant/wpa_supplicant.conf:z
       - ./App:/usr/src/hefesto:z
     privileged: true
+    deploy:
+      resources:
+        limits:
+          memory: 100M
 
   processor:
     container_name: hefesto_processor
@@ -84,6 +100,10 @@ services:
     volumes:
       - ./App:/usr/src/hefesto:z
     privileged: true
+    deploy:
+      resources:
+        limits:
+          memory: 300M
   
   web:
     container_name: nginx_proxy
@@ -102,6 +122,10 @@ services:
       - grafana
       - webapp
     restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 50M
 
 networks:
   postgres:

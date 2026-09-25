@@ -11,6 +11,11 @@ It has a modular architecture that can be extended through plugins (Django apps)
 
 It uses [Grafana](https://grafana.com/) as its visualization tool.
 
+## Documentation
+
+* [Architecture](docs/architecture.md): containers, Django apps, task scheduling and data flow.
+* [Tutorials](docs/tutorials.md): step-by-step guides for every feature.
+
 ## To do:
 
 1. Write the documentation
@@ -72,7 +77,7 @@ echo "HEFESTO_DB_PASSWORD=$(openssl rand -hex 24)" > .env
 | `DJANGO_ALLOWED_HOSTS` | No | Comma-separated allowed hosts (defaults to `localhost,127.0.0.1,hefesto,hefesto.local,192.168.1.212,192.168.137.212`). Add the IP or hostname used to reach the device. |
 | `DJANGO_DEBUG` | No | `1` to enable Django debug mode (off by default). |
 
-`POSTGRES_PASSWORD` only applies when the `pgdata` volume is created. To change the password on an already deployed device:
+`POSTGRES_PASSWORD` only applies when the `pgdata18` volume is created. To change the password on an already deployed device:
 ```bash
 docker-compose exec postgres psql -U hefesto -d hefestodb -c "ALTER USER hefesto WITH PASSWORD '<new>';"
 ```
@@ -89,7 +94,7 @@ Go to the [Configuration](http://localhost/hefesto/admin/) page.
 
 ### Database structure:
 
-![Alt](docs/assets/models.png)
+See the [database model](docs/architecture.md#database-model).
 
 ## Bugs
 Report any bug by email or open an [Issue!](https://github.com/DanielGnzlzVll/Hefesto/issues/new)

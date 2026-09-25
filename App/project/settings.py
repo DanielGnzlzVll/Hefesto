@@ -37,14 +37,15 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", get_random_secret_key())
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = os.getenv("DJANGO_DEBUG", "").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = [
-    "localhost",
-    "hefesto.local",
-    "192.168.137.212",
-    "hefesto",
-    "*",
+    host.strip()
+    for host in os.getenv(
+        "DJANGO_ALLOWED_HOSTS",
+        "localhost,127.0.0.1,hefesto,hefesto.local,192.168.1.212,192.168.137.212",
+    ).split(",")
+    if host.strip()
 ]
 
 USE_X_FORWARDED_HOST = False
@@ -154,7 +155,7 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 100*1024*1024
 
 STATIC_URL = "/hefesto/static/"
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-STATIC_ROOT = os.path.join(PROJECT_DIR, "static")
+STATIC_ROOT = os.getenv("DJANGO_STATIC_ROOT", os.path.join(PROJECT_DIR, "static"))
 
 LOGGING = {
     "version": 1,

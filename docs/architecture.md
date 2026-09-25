@@ -14,7 +14,7 @@ The diagrams are built in [`diagrams/architecture.html`](diagrams/architecture.h
 | `webapp` | `hefesto` (built from `App/`) | Django admin used to configure everything. Runs privileged with `/etc/wpa_supplicant` mounted so saving the Wi-Fi form reconfigures the host. |
 | `processor` | `hefesto` | Runs `manage.py hefesto_processor`, the scheduler that executes every enabled `Task` (acquisition, transmission, housekeeping). Privileged to reach serial ports. |
 | `migrate` | `hefesto` | One-shot job: `collectstatic` + `migrate` on every `up`. |
-| `postgres` | `postgres:10.7-alpine` | Single source of truth. Data persisted in the `pgdata` volume. |
+| `postgres` | `postgres:18-alpine` | Single source of truth. Data persisted in the `pgdata18` volume. |
 | `grafana` | `grafana/grafana:6.6.0` | Dashboards over the `Postgres` datasource provisioned from `grafana/provisioning`. |
 
 Two Docker networks isolate traffic: `nginx_proxy` (web, webapp, grafana) and `postgres` (everything that talks to the database). The database is never exposed outside the device.

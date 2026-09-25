@@ -4,7 +4,7 @@ import math
 import struct
 import time
 
-from django.utils.timezone import now
+from django.utils.timezone import localtime, now
 
 from hefesto_core import models as hmodels
 
@@ -25,6 +25,21 @@ def obtener_consultas():
     return models.Consulta.objects.filter(
         habilitada=True, proximo_request__lt=now()
     ).order_by("proximo_request")
+
+
+def proximo_muestreo(intervalo, desde):
+    """
+    Siguiente limite de `intervalo` segundos en la hora local, para que las
+    muestras caigan en los mismos instantes (ej: cada hora en punto) y las
+    agregaciones por ventana no pierdan los extremos.
+    """
+    if intervalo <= 0:
+        return desde
+    paso = datetime.timedelta(seconds=intervalo)
+    transcurrido = localtime(desde).replace(tzinfo=None) - datetime.datetime(
+        1970, 1, 1
+    )
+    return desde + paso - transcurrido % paso
 
 
 def obtener_driver(consulta):
@@ -402,8 +417,8 @@ def procesar_consultas():
                         consulta, dev, query_raw, response_raw
                     )
                     guardar_variables(variables)
-            consulta.proximo_request = now() + datetime.timedelta(
-                seconds=consulta.intervalo_muestreo
+            consulta.proximo_request = proximo_muestreo(
+                consulta.intervalo_muestreo, now()
             )
             consulta.save()
         except Exception as e:

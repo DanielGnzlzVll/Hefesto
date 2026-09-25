@@ -8,7 +8,7 @@ datasources:
     isDefault: true
     user: hefesto
     secureJsonData:
-      password: "H3f3st0_s3cr3t"
+      password: "$HEFESTO_DB_PASSWORD"
     jsonData:
       sslmode: "disable" # disable/require/verify-ca/verify-full
       maxOpenConns: 0         # Grafana v5.4+

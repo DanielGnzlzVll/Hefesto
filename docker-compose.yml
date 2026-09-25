@@ -77,7 +77,7 @@ services:
       - migrate
     restart: always
     volumes:
-      - /etc/wpa_supplicant/wpa_supplicant.conf:/etc/wpa_supplicant/wpa_supplicant.conf:z
+      - /etc/wpa_supplicant:/etc/wpa_supplicant:z
       - ./App:/usr/src/hefesto:z
     privileged: true
     deploy:

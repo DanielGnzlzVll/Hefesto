@@ -131,10 +131,13 @@ def send_data():
                     response.status_code, response.reason
                 )
             )
-        try:
-            messages_processor(response.json())
-        except:  # noqa
-            pass
+        if response.content:
+            try:
+                messages_processor(response.json())
+            except Exception:
+                logger.exception(
+                    "No se pudo procesar la respuesta del servidor"
+                )
         time.sleep(config.tiempo_entre_envios)
     time.sleep(60)
 

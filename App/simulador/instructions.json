@@ -26,7 +26,7 @@
         "update":[
             # deshabilitar las consultas que se llamen test
             {
-                "names": "hefesto_modbus.Consulta", 
+                "name": "hefesto_modbus.Consulta", 
                 "filter": {
                     "nombre": "test"
                 }
@@ -38,31 +38,13 @@
             # Cambiar el periodo de muestreo de a 300s 
             # y consultar los dispositivos con id modbus 1, 2, 3, 5
             {
-                "names": "hefesto_modbus.Consulta", 
+                "name": "hefesto_modbus.Consulta", 
                 "fields":{
                     "intervalo_muestreo": 300,
                     "dispositivos": "1-4"
                 }
             }
 
-        ],
-        "fixtures":[
-            {
-                "model": "myapp.person",
-                "pk": 1,
-                "fields": {
-                  "first_name": "John",
-                  "last_name": "Lennon"
-                }
-              },
-              {
-                "model": "myapp.person",
-                "pk": 2,
-                "fields": {
-                  "first_name": "Paul",
-                  "last_name": "McCartney"
-                }
-              }
         ]
     }
 }

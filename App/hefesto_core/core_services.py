@@ -1,8 +1,11 @@
+import functools
 import logging
-from django.db import transaction
+
 import django.apps
-import subprocess
-import json
+from django.conf import settings
+from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.db import transaction
+
 from hefesto_core import models
 
 logger = logging.getLogger(__name__)
@@ -60,33 +63,156 @@ def get_data2send():
             process_message_from_server,
         )
     else:
-        return {}, lambda: None, lambda: None
+        return {}, lambda: None, process_message_from_server
+
+
+FORBIDDEN_APPS = {
+    "admin",
+    "auth",
+    "contenttypes",
+    "sessions",
+    "hefesto_logging",
+    "hefesto_network",
+    "hefesto_http_agent",
+    "hefesto_azure_iothub",
+}
+FORBIDDEN_MODELS = {"hefesto_core.task"}
+OPERATIONS = ("clean", "update")
+
+
+class InvalidInstruction(Exception):
+    pass
 
 
 def process_message_from_server(msg):
+    """
+    Aplica las instrucciones enviadas por el servidor, solo sobre los
+    modelos, operaciones y campos de settings.HEFESTO_SERVER_INSTRUCTIONS.
+    Si alguna instruccion no es valida no se aplica ninguna.
+
+    :raises InvalidInstruction: si el mensaje no es valido o no esta permitido
+    """
     logger.info(f"Procesando mensaje: {msg}")
+    if msg is None:
+        return
+    if not isinstance(msg, dict):
+        raise InvalidInstruction("El mensaje debe ser un objeto")
+    instructions = msg.get("models")
+    if instructions is None:
+        return
+    actions = _parse_models(instructions)
     with transaction.atomic():
-        process_models(msg.get("models"))
+        for action in actions:
+            action()
 
 
-def process_models(instructions):
-    clean_models = instructions.get("clean", [])
-    for model in clean_models:
-        model_name = model.get("name")
-        filter_ = model.get("filter", {})
-        exclude_ = model.get("exclude", {})
-        Model = django.apps.apps.get_model(model_name)
-        Model.objects.filter(**filter_).exclude(**exclude_).delete()
-    update_models = instructions.get("update", [])
-    for model in update_models:
-        model_name = model.get("name")
-        filter_ = model.get("filter", {})
-        exclude_ = model.get("exclude", {})
-        to_update = model.get("fields")
-        Model = django.apps.apps.get_model(model_name)
-        Model.objects.filter(**filter_).exclude(**exclude_).update(**to_update)
-    fixture_models = instructions.get("fixtures", None)
-    if fixture_models:
-        fixture_models = json.dumps(fixture_models).encode()
-        cmd = ["python", "manage.py", "loaddata", "--format", "json", "-"]
-        subprocess.run(cmd, input=fixture_models)
+def _parse_models(instructions):
+    if not isinstance(instructions, dict):
+        raise InvalidInstruction("'models' debe ser un objeto")
+    unknown = set(instructions) - set(OPERATIONS)
+    if unknown:
+        raise InvalidInstruction(
+            f"Operaciones no permitidas: {sorted(unknown)}"
+        )
+    actions = []
+    for item in _as_list(instructions, "clean"):
+        actions.append(_queryset(item, "clean").delete)
+    for item in _as_list(instructions, "update"):
+        queryset = _queryset(item, "update")
+        fields = _clean_fields(queryset.model, item.get("fields"))
+        actions.append(functools.partial(queryset.update, **fields))
+    return actions
+
+
+def _as_list(instructions, operation):
+    items = instructions.get(operation, [])
+    if not isinstance(items, list) or not all(
+        isinstance(item, dict) for item in items
+    ):
+        raise InvalidInstruction(
+            f"'{operation}' debe ser una lista de objetos"
+        )
+    return items
+
+
+def _get_model(name):
+    try:
+        return django.apps.apps.get_model(name)
+    except (LookupError, ValueError, TypeError, AttributeError):
+        raise InvalidInstruction(f"Modelo no valido: {name!r}")
+
+
+def _allowed_operations(Model):
+    label = Model._meta.label_lower
+    if Model._meta.app_label in FORBIDDEN_APPS or label in FORBIDDEN_MODELS:
+        return {}
+    allowlist = getattr(settings, "HEFESTO_SERVER_INSTRUCTIONS", {})
+    for name, operations in allowlist.items():
+        if name.lower() == label:
+            return operations
+    return {}
+
+
+def _local_field(Model, name):
+    if name == "pk":
+        return Model._meta.pk
+    try:
+        field = Model._meta.get_field(name)
+    except FieldDoesNotExist:
+        field = None
+    if field is None or not field.concrete or field.is_relation:
+        raise InvalidInstruction(
+            f"Campo no valido en {Model._meta.label}: {name!r}"
+        )
+    return field
+
+
+def _validate_lookups(Model, lookups):
+    if not isinstance(lookups, dict):
+        raise InvalidInstruction("'filter' y 'exclude' deben ser objetos")
+    for key in lookups:
+        name, _, lookup = key.partition("__")
+        field = _local_field(Model, name)
+        if lookup and field.get_lookup(lookup) is None:
+            raise InvalidInstruction(
+                f"Filtro no valido en {Model._meta.label}: {key!r}"
+            )
+
+
+def _queryset(item, operation):
+    Model = _get_model(item.get("name"))
+    if not _allowed_operations(Model).get(operation):
+        raise InvalidInstruction(
+            f"'{operation}' no permitido en {Model._meta.label}"
+        )
+    filter_ = item.get("filter", {})
+    exclude_ = item.get("exclude", {})
+    _validate_lookups(Model, filter_)
+    _validate_lookups(Model, exclude_)
+    try:
+        return Model.objects.filter(**filter_).exclude(**exclude_)
+    except (ValueError, TypeError, ValidationError) as e:
+        raise InvalidInstruction(
+            f"Filtro no valido en {Model._meta.label}: {e}"
+        )
+
+
+def _clean_fields(Model, fields):
+    if not isinstance(fields, dict) or not fields:
+        raise InvalidInstruction("'fields' debe ser un objeto no vacio")
+    allowed = _allowed_operations(Model).get("update")
+    cleaned = {}
+    for name, value in fields.items():
+        if name not in allowed:
+            raise InvalidInstruction(
+                f"Campo no permitido en {Model._meta.label}: {name!r}"
+            )
+        field = _local_field(Model, name)
+        try:
+            cleaned[field.attname] = field.clean(value, None)
+        except ValidationError as e:
+            raise InvalidInstruction(
+                f"Valor no valido para {Model._meta.label}.{name}: "
+                f"{e.messages}"
+            )
+    return cleaned

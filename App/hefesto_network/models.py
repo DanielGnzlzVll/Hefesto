@@ -6,6 +6,8 @@ from django.db import models
 
 from solo.models import SingletonModel
 
+from . import wpa
+
 logger = logging.getLogger(__name__)
 
 # Create your models here.
@@ -94,6 +96,22 @@ class Wifi(NetworkConfigMixin):
 
     class Meta:
         verbose_name = "WIFI"
+
+    def clean(self):
+        super().clean()
+        if not self.wifi_ssid and not self.password:
+            return
+        errors = {}
+        for field, validator in (
+            ("wifi_ssid", wpa.validate_ssid),
+            ("password", wpa.validate_psk),
+        ):
+            try:
+                validator(getattr(self, field))
+            except ValidationError as e:
+                errors[field] = e
+        if errors:
+            raise ValidationError(errors)
 
 
 class Ethernet(NetworkConfigMixin):

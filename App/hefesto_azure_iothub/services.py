@@ -8,6 +8,7 @@ from hmac import HMAC
 from urllib import parse
 
 import requests
+from django.db import InterfaceError, OperationalError
 
 from hefesto_core import core_services, core_utils
 
@@ -141,6 +142,43 @@ def send_data():
     time.sleep(60)
 
 
+def handle_cloud_message(response, iotHub, deviceId, headers):
+    etag = response.headers.get("etag", "").replace('"', "")
+    if not etag:
+        return
+    logger.info(f"Mensaje recibido: {etag}")
+    logger.info(f"Cuerpo mensaje: {response.content}")
+
+    uri = f"https://{iotHub}/devices/{deviceId}/messages/deviceBound/{etag}"
+    api_version = "api-version=2018-04-01"
+    try:
+        core_services.process_message_from_server(response.json())
+    except (OperationalError, InterfaceError):
+        logger.exception(f"Error transitorio procesando mensaje: {etag}")
+        action, method = "abandonado", requests.post
+        uri = f"{uri}/abandon?{api_version}"
+    except Exception:
+        logger.exception(f"Error procesando mensaje: {etag}")
+        action, method = "rechazado", requests.delete
+        uri = f"{uri}?{api_version}&reject"
+    else:
+        action, method = "completado", requests.delete
+        uri = f"{uri}?{api_version}"
+
+    try:
+        settle_response = method(uri, headers=headers, timeout=10)
+    except Exception:
+        logger.exception(f"No se pudo marcar mensaje como {action}: {etag}")
+        return
+    if settle_response.status_code >= 300:
+        logger.error(
+            f"No se pudo marcar mensaje como {action}: {etag} - "
+            f"{settle_response.status_code} {settle_response.reason}"
+        )
+    else:
+        logger.info(f"Mensaje {action}: {etag}")
+
+
 def get_data():
     config = models.Client.get_solo()
     while config.habilitado and config.connection_string:
@@ -165,32 +203,9 @@ def get_data():
             continue
 
         if response.status_code < 300:
-            etag = response.headers.get("etag", "").replace('"', "")
-            if etag:
-                logger.info(f"Mensaje recibido: {etag}")
-                logger.info(f"Cuerpo mensaje: {response.content}")
-                reject = False
-                try:
-                    core_services.process_message_from_server(response.json())
-                except Exception:
-                    logger.exception(f"No se pudo procesar el mensaje {etag}")
-                    reject = True
-                uri = (
-                    f"https://{iotHub}/devices/{deviceId}/messages/"
-                    f"deviceBound/{etag}?api-version=2018-04-01"
-                )
-                if reject:
-                    uri += "&reject"
-                try:
-                    _ = requests.delete(
-                        uri, headers=additional_headers, timeout=10,
-                    )
-                    if reject:
-                        logger.info(f"Mensaje rechazado: {etag}")
-                    else:
-                        logger.info(f"Mensaje completado: {etag}")
-                except:  # noqa
-                    pass
+            handle_cloud_message(
+                response, iotHub, deviceId, additional_headers
+            )
         else:
             logger.error(
                 "Solicitud de datos  fallida {} - {}".format(

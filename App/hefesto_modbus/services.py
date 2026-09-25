@@ -53,7 +53,7 @@ def evaluar_expresiones(consulta, dev):
     )
 
     values = b""
-    for variable in consulta.variableescritura_set.all():
+    for variable in consulta.variableescritura_set.order_by("pk"):
         try:
             value = eval(variable.expresion, None, _locals)
             if variable.tipo_dato in ([">f", ">d"]):

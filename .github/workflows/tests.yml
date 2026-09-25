@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: python:3.8-slim
+    services:
+      postgres:
+        image: postgres:10.7-alpine
+        env:
+          POSTGRES_DB: hefestodb
+          POSTGRES_USER: hefesto
+          POSTGRES_PASSWORD: hefesto
+        options: >-
+          --health-cmd "pg_isready -U hefesto"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      HEFESTO_DB_PASSWORD: hefesto
+    defaults:
+      run:
+        working-directory: App
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -r requirements.txt
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py test -v 2

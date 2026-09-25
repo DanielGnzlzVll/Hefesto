@@ -1,3 +1,4 @@
+from django.core.validators import URLValidator
 from django.db import models
 from solo.models import SingletonModel
 
@@ -5,7 +6,9 @@ from solo.models import SingletonModel
 # Create your models here.
 class Client(SingletonModel):
     url = models.URLField(
-        max_length=200, default="http://localhost/hefesto/hefesto_web/data"
+        max_length=200,
+        default="https://localhost/hefesto/hefesto_web/data",
+        validators=[URLValidator(schemes=["https"])],
     )
     username = models.CharField(
         max_length=100,

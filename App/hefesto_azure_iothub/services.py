@@ -130,10 +130,13 @@ def send_data():
                     response.status_code, response.reason
                 )
             )
-        try:
-            messages_processor(response.json())
-        except:  # noqa
-            pass
+        if response.content:
+            try:
+                messages_processor(response.json())
+            except Exception:
+                logger.exception(
+                    "No se pudo procesar la respuesta del servidor"
+                )
         time.sleep(config.tiempo_entre_envios)
     time.sleep(60)
 
@@ -166,11 +169,12 @@ def get_data():
             if etag:
                 logger.info(f"Mensaje recibido: {etag}")
                 logger.info(f"Cuerpo mensaje: {response.content}")
-                reject = True
+                reject = False
                 try:
                     core_services.process_message_from_server(response.json())
-                except:  # noqa
-                    reject = False
+                except Exception:
+                    logger.exception(f"No se pudo procesar el mensaje {etag}")
+                    reject = True
                 uri = (
                     f"https://{iotHub}/devices/{deviceId}/messages/"
                     f"deviceBound/{etag}?api-version=2018-04-01"

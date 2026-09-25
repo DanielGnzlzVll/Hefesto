@@ -50,6 +50,20 @@ def transmit(data, config):
     return response
 
 
+def process_response(response, config, messages_processor):
+    if not response.content:
+        return
+    if not config.url.lower().startswith("https://"):
+        logger.warning(
+            "Instrucciones ignoradas: la url del servidor no es https"
+        )
+        return
+    try:
+        messages_processor(response.json())
+    except Exception:
+        logger.exception("No se pudo procesar la respuesta del servidor")
+
+
 def send_data():
     from hefesto_core import core_services, core_utils
 
@@ -82,9 +96,6 @@ def send_data():
                     response.status_code, response.reason
                 )
             )
-        try:
-            messages_processor(response.json())
-        except:  # noqa
-            pass
+        process_response(response, config, messages_processor)
         time.sleep(config.tiempo_entre_envios)
     time.sleep(60)

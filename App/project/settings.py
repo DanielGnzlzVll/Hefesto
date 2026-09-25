@@ -191,6 +191,12 @@ LOGGING = {
     },
 }
 
+HEFESTO_SERVER_INSTRUCTIONS = {
+    "hefesto_modbus.Consulta": {
+        "update": ["habilitada", "intervalo_muestreo"],
+    },
+}
+
 HEFESTO_SERIAL = os.getenv("HEFESTO_SERIAL", None)
 HARDWARE_SERIAL = get_hardware_serial()
 

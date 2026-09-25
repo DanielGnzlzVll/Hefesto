@@ -1,6 +1,8 @@
+import errno
 import os
 import stat
 import tempfile
+from unittest import mock
 
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase
@@ -77,6 +79,13 @@ class ChangeSsidKeyTests(SimpleTestCase):
     def test_preserves_mode_and_leaves_no_temp_files(self):
         wpa.change_ssid_key("net", "password", self.path)
         self.assertEqual(stat.S_IMODE(os.stat(self.path).st_mode), 0o600)
+        self.assertEqual(os.listdir(self.tmpdir.name), ["wpa_supplicant.conf"])
+
+    def test_falls_back_to_in_place_write_on_ebusy(self):
+        busy = OSError(errno.EBUSY, "Device or resource busy")
+        with mock.patch("os.replace", side_effect=busy):
+            wpa.change_ssid_key("net", "password", self.path)
+        self.assertIn("ssid={}\n".format(b"net".hex()), self.read())
         self.assertEqual(os.listdir(self.tmpdir.name), ["wpa_supplicant.conf"])
 
     def test_missing_file_raises(self):

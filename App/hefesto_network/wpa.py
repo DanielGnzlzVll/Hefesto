@@ -1,3 +1,4 @@
+import errno
 import hashlib
 import logging
 import os
@@ -69,9 +70,22 @@ def atomic_write(path, content):
             f.flush()
             os.fsync(f.fileno())
         os.chmod(tmp_path, mode)
-        os.replace(tmp_path, path)
+        try:
+            os.replace(tmp_path, path)
+        except OSError as e:
+            # A single-file bind mount cannot be replaced, only rewritten.
+            if e.errno != errno.EBUSY:
+                raise
+            logger.warning("%s no se puede reemplazar, se reescribe", path)
+            os.unlink(tmp_path)
+            with open(path, "w") as f:
+                f.write(content)
+                f.flush()
+                os.fsync(f.fileno())
+            return
     except BaseException:
-        os.unlink(tmp_path)
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
         raise
     dir_fd = os.open(directory, os.O_RDONLY)
     try:

@@ -94,7 +94,7 @@ Go to the [Configuration](http://localhost/hefesto/admin/) page.
 
 ### Database structure:
 
-![Alt](docs/assets/models.png)
+See the [database model](docs/architecture.md#database-model).
 
 ## Bugs
 Report any bug by email or open an [Issue!](https://github.com/DanielGnzlzVll/Hefesto/issues/new)

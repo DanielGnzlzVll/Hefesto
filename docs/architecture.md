@@ -206,4 +206,137 @@ The `delete_old_*` commands are not scheduled by default; add them as tasks if n
 
 ## Database model
 
-![Database model](assets/models.png)
+All apps share the `hefestodb` PostgreSQL database. Singleton models (`DeviceConfiguration`, both `Client`s, `Wifi`, `Ethernet`) hold a single row.
+
+```mermaid
+erDiagram
+    DeviceConfiguration {
+        int id PK
+        char hefesto_id
+    }
+    Task {
+        int id PK
+        char name
+        char command
+        char cron_expression
+        bool enable
+        bool hidden
+        datetime created
+        datetime updated
+    }
+    TimeSerie {
+        int id PK
+        datetime time
+        char name
+        json value
+        char plugin
+        json context
+        bool exported
+        datetime created
+        datetime updated
+    }
+    ModbusTimeSerie {
+        int timeserie_ptr_id PK, FK
+        int variable_id FK
+        int dev_id
+        char request_raw
+        char response_raw
+        bool crc_ok
+    }
+    Consulta {
+        int id PK
+        char nombre
+        bool habilitada
+        char dispositivos
+        int codigo_funcion
+        int registro_inicio
+        int numero_registros
+        float tiempo_espera
+        int intervalo_muestreo
+        datetime proximo_request
+        char tipo_conexion
+        char puerto_serial
+        int baudrate
+        char numero_bytes
+        char paridad
+        char bit_parada
+        char ip
+        int puerto_tcp
+    }
+    VariableLectura {
+        int id PK
+        int consulta_id FK
+        char nombre
+        char tipo_dato
+        int longitud_texto
+        char byte_order
+        int desplazamiento
+        int cantidad
+        float escala
+        float offset
+    }
+    VariableEscritura {
+        int id PK
+        int consulta_id FK
+        char nombre
+        text expresion
+        char tipo_dato
+        char byte_order
+    }
+    HttpClient["hefesto_http_agent.Client"] {
+        int id PK
+        char url
+        char username
+        char password
+        bool habilitado
+        bool gzip_habilitado
+        int tiempo_entre_envios
+    }
+    Header {
+        int id PK
+        int config_id FK
+        text key
+        text value
+    }
+    AzureClient["hefesto_azure_iothub.Client"] {
+        int id PK
+        text connection_string
+        bool habilitado
+        int tiempo_entre_envios
+        int tiempo_entre_peticiones
+        bool gzip_habilitado
+    }
+    Wifi {
+        int id PK
+        char interface
+        char wifi_ssid
+        char password
+        char mode
+        char ip_address
+        char ip_mask
+        char ip_gateway
+        char ip_dns
+    }
+    Ethernet {
+        int id PK
+        char interface
+        char mode
+        char ip_address
+        char ip_mask
+        char ip_gateway
+        char ip_dns
+    }
+    Log {
+        int id PK
+        datetime timestamp
+        char modulo
+        int nivel
+        text mensaje
+        text trace
+    }
+    TimeSerie ||--o| ModbusTimeSerie : "extends"
+    Consulta ||--o{ VariableLectura : "reads"
+    Consulta ||--o{ VariableEscritura : "writes"
+    VariableLectura |o--o{ ModbusTimeSerie : "produces"
+    HttpClient ||--o{ Header : "sends"
+```

@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hefesto · Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #13100d;
+    --bg-grid: rgba(224, 123, 76, 0.045);
+    --surface: #1c1814;
+    --surface-2: #241f1a;
+    --surface-3: #2d2720;
+    --border: #3a3129;
+    --border-hot: #5a4636;
+    --text: #f1e8dc;
+    --text-dim: #a8998a;
+    --text-faint: #6f6356;
+    --copper: #e57f4f;
+    --brass: #d8b268;
+    --sage: #93b88e;
+    --steel: #82a7c9;
+    --ember: #f25a33;
+    --sans: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+    --mono: "Fragment Mono", "JetBrains Mono", "SFMono-Regular", Menlo, monospace;
+    --fig-width: 1480px;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { background: var(--bg); }
+
+  body {
+    margin: 0;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.45;
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(229, 127, 79, 0.10), transparent 60%),
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0 / 32px 32px,
+      var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code, .mono { font-family: var(--mono); }
+
+  .page {
+    width: var(--fig-width);
+    margin: 0 auto;
+    padding: 56px 0 96px;
+  }
+
+  /* ---------- hero ---------- */
+  .hero {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: end;
+    gap: 32px;
+    padding: 0 8px 40px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 56px;
+  }
+  .anvil {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(145deg, var(--copper), var(--ember));
+    box-shadow: 0 12px 40px -12px rgba(242, 90, 51, 0.6), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .anvil svg { width: 40px; height: 40px; }
+  .hero h1 {
+    margin: 0;
+    font-size: 56px;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--copper);
+  }
+  .hero p { margin: 10px 0 0; color: var(--text-dim); font-size: 17px; max-width: 720px; }
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: 8px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .legend i { display: inline-block; width: 26px; height: 0; border-top: 2px solid; }
+  .legend i.dash { border-top-style: dashed; }
+
+  /* ---------- figure shell ---------- */
+  .ve-fig {
+    position: relative;
+    z-index: 0;
+    margin: 0 0 64px;
+    padding: 40px 44px 44px;
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    background: linear-gradient(180deg, rgba(36, 31, 26, 0.92), rgba(24, 20, 17, 0.96));
+    box-shadow: 0 40px 80px -48px rgba(0,0,0,0.8);
+    overflow: hidden;
+  }
+  .ve-fig::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--copper), var(--brass) 45%, transparent 80%);
+    z-index: 3;
+  }
+  .fig-head {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 36px;
+  }
+  .fig-num {
+    font-family: var(--mono);
+    font-size: 44px;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--border-hot);
+  }
+  .fig-head h2 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.02em; }
+  .fig-head p { margin: 4px 0 0; color: var(--text-dim); max-width: 760px; }
+  .fig-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--copper);
+    border: 1px solid rgba(229,127,79,0.35);
+    border-radius: 999px;
+    padding: 5px 12px;
+  }
+
+  /* ---------- wires ---------- */
+  .ve-wires {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .ve-wires path.wire {
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    transition: opacity .2s ease, stroke-width .2s ease;
+  }
+  .ve-wires path.wire.async { stroke-dasharray: 6 6; }
+  .ve-labels { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+  .ve-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid currentColor;
+    transition: opacity .2s ease;
+  }
+  .ve-fig.focus path.wire:not(.hot),
+  .ve-fig.focus .ve-label:not(.hot) { opacity: 0.12; }
+  .ve-fig.focus path.wire.hot { stroke-width: 2.6; }
+
+  /* ---------- cards ---------- */
+  .ve-card {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+    padding: 14px 16px 14px 18px;
+    border-radius: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 16px 32px -24px rgba(0,0,0,0.9);
+    transition: border-color .2s ease, transform .2s ease;
+  }
+  .ve-card::before {
+    content: "";
+    position: absolute;
+    left: -1px; top: 14px; bottom: 14px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--accent, var(--copper));
+  }
+  .ve-card:hover { border-color: var(--accent, var(--copper)); }
+  .ve-card .kind {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent, var(--copper));
+  }
+  .ve-card h3 {
+    margin: 4px 0 2px;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+  }
+  .ve-card .meta {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-dim);
+    overflow-wrap: anywhere;
+  }
+  .ve-card .desc { margin-top: 6px; color: var(--text-dim); font-size: 13.5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--surface-3);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .chip.net-proxy { color: var(--steel); border-color: rgba(130,167,201,0.35); }
+  .chip.net-db { color: var(--brass); border-color: rgba(216,178,104,0.35); }
+  .chip.hot { color: var(--copper); border-color: rgba(229,127,79,0.4); }
+
+  .k-edge { --accent: var(--steel); }
+  .k-app { --accent: var(--copper); }
+  .k-store { --accent: var(--brass); }
+  .k-ext { --accent: var(--sage); }
+  .k-sys { --accent: var(--text-faint); }
+
+  .ve-card.store { border-radius: 16px 16px 22px 22px; }
+  .ve-card.store::after {
+    content: "";
+    position: absolute;
+    left: 12px; right: 12px; top: -1px;
+    height: 8px;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 50% 50% / 0 0 100% 100%;
+    opacity: 0.7;
+  }
+
+  .frame {
+    position: relative;
+    border: 1.5px dashed rgba(229,127,79,0.45);
+    border-radius: 24px;
+    background: rgba(229,127,79,0.035);
+    padding: 36px 28px 28px;
+    min-width: 0;
+  }
+  .frame > .frame-label {
+    position: absolute;
+    top: -12px; left: 24px;
+    padding: 3px 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--copper);
+    background: var(--surface);
+    border: 1px solid rgba(229,127,79,0.45);
+    border-radius: 999px;
+    z-index: 2;
+  }
+  .frame > .frame-label.bottom { top: auto; bottom: -12px; }
+  .frame.quiet { border-color: var(--border-hot); background: rgba(255,255,255,0.015); }
+  .frame.quiet > .frame-label { color: var(--text-dim); border-color: var(--border-hot); }
+
+  .col-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 14px;
+  }
+
+  /* ---------- 01 component ---------- */
+  .comp {
+    display: grid;
+    grid-template-columns: 170px 1fr 230px;
+    gap: 120px;
+    align-items: stretch;
+  }
+  .comp .outside, .comp .external { display: flex; flex-direction: column; }
+  .comp .outside { padding-top: 70px; }
+  .comp .external { gap: 22px; padding-top: 30px; }
+  .comp .external .spacer { flex: 1; min-height: 60px; }
+  .device {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: auto auto auto;
+    gap: 44px 56px;
+  }
+
+  /* ---------- 02 software ---------- */
+  .soft {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 250px;
+    grid-template-rows: auto auto auto;
+    gap: 56px 44px;
+  }
+  .soft .band-label {
+    grid-column: 1 / 4;
+    margin: -34px 0 -30px;
+  }
+  .soft .system { grid-column: 4; grid-row: 1 / 4; display: flex; flex-direction: column; gap: 18px; }
+  .soft .core-frame {
+    grid-column: 1 / 4;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 120px;
+  }
+  .model-list { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+  .model-list li { font-family: var(--mono); font-size: 12px; color: var(--text-dim); }
+  .model-list li b { color: var(--text); font-weight: 400; }
+
+  /* ---------- 03 scheduling ---------- */
+  .sched {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 112px;
+    padding-bottom: 110px;
+  }
+  .sched .ve-card { padding-bottom: 18px; }
+  .sched .step {
+    position: absolute;
+    top: -14px; right: 14px;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--bg);
+    background: var(--accent, var(--copper));
+  }
+  .task-table {
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+  }
+  .task-table table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .task-table th {
+    text-align: left;
+    font-family: var(--mono);
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    background: var(--surface);
+    padding: 12px 18px;
+  }
+  .task-table td { padding: 11px 18px; border-top: 1px solid var(--border); color: var(--text-dim); }
+  .task-table td:first-child, .task-table td:nth-child(2), .task-table td:nth-child(3) { font-family: var(--mono); font-size: 12.5px; color: var(--text); }
+  .task-table td:nth-child(3) { color: var(--brass); }
+  .sched-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 22px; }
+  .note {
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px dashed var(--border-hot);
+    color: var(--text-dim);
+    font-size: 13.5px;
+  }
+  .note b { color: var(--text); font-weight: 600; }
+
+  /* ---------- 04 data flow ---------- */
+  .lanes {
+    --cols: 6;
+    position: relative;
+    display: grid;
+    grid-template-columns: 120px 1fr;
+  }
+  .actors {
+    grid-column: 2;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    gap: 0 16px;
+    margin-bottom: 18px;
+    position: sticky;
+    top: 0;
+  }
+  .actor {
+    text-align: center;
+    padding: 12px 8px;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-bottom: 3px solid var(--accent);
+  }
+  .actor b { display: block; font-size: 15px; }
+  .actor span { font-family: var(--mono); font-size: 11px; color: var(--text-dim); }
+  .lane-body { grid-column: 1 / 3; position: relative; display: grid; grid-template-columns: 120px 1fr; }
+  .lifelines {
+    position: absolute;
+    left: 120px; right: 0; top: 0; bottom: 0;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    gap: 0 16px;
+    pointer-events: none;
+  }
+  .lifelines div { position: relative; }
+  .lifelines div::after {
+    content: "";
+    position: absolute;
+    left: 50%; top: 0; bottom: 0;
+    border-left: 1px dashed var(--border-hot);
+  }
+  .phase {
+    grid-column: 1;
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    padding: 10px 0;
+  }
+  .phase .rail { width: 4px; border-radius: 4px; background: var(--accent); }
+  .phase .phase-name {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-align: center;
+  }
+  .steps { grid-column: 2; display: grid; }
+  .msg {
+    --from: 1;
+    --to: 2;
+    position: relative;
+    height: 52px;
+  }
+  .msg .arrow {
+    position: absolute;
+    z-index: 1;
+    top: 30px;
+    height: 0;
+    border-top: 2px solid var(--accent);
+  }
+  .msg.async .arrow { border-top-style: dashed; }
+  .msg .arrow::after {
+    content: "";
+    position: absolute;
+    top: -7px;
+    border: 6px solid transparent;
+  }
+  .msg.right .arrow::after { right: -2px; border-left: 9px solid var(--accent); border-right: 0; }
+  .msg.left .arrow::after { left: -2px; border-right: 9px solid var(--accent); border-left: 0; }
+  .msg .text {
+    position: absolute;
+    top: 4px;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 8px 2px 2px;
+    border-radius: 999px;
+    background: #1f1a16;
+    z-index: 1;
+  }
+  .msg .text code { font-size: 11.5px; color: var(--text-dim); }
+  .num {
+    display: inline-grid;
+    place-items: center;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--bg);
+    background: var(--accent);
+    flex: none;
+  }
+  .msg.self .box {
+    position: absolute;
+    top: 8px;
+    transform: translateX(-50%);
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--surface-3);
+    border: 1px solid var(--accent);
+    font-size: 12.5px;
+    white-space: nowrap;
+    display: flex; gap: 8px; align-items: center;
+    z-index: 2;
+  }
+  .msg.self { height: 56px; }
+  .flow-foot { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 30px; margin-left: 120px; }
+  .payload {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    padding: 14px 18px;
+  }
+  .payload .col-title { margin-bottom: 8px; }
+  .payload pre { margin: 0; font-family: var(--mono); font-size: 12px; color: var(--text-dim); white-space: pre; overflow-x: auto; }
+  .payload pre .k { color: var(--brass); }
+  .payload pre .s { color: var(--sage); }
+
+  /* ---------- 05 database ---------- */
+  .db {
+    display: grid;
+    grid-template-columns: 1.05fr 2.1fr 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+  .db .frame { padding: 34px 16px 18px; }
+  .db .zone-stack { display: flex; flex-direction: column; gap: 22px; }
+  .db .modbus-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+  .entity {
+    position: relative;
+    z-index: 2;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 16px 32px -24px rgba(0,0,0,0.9);
+  }
+  .entity header {
+    flex-wrap: wrap;
+    padding: 10px 12px 9px;
+    background: linear-gradient(180deg, var(--surface-3), var(--surface-2));
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  }
+  .entity header b { font-size: 14.5px; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  .entity header span { font-family: var(--mono); font-size: 10px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.1em; }
+  .entity ul { list-style: none; margin: 0; padding: 6px 0; }
+  .entity li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 2px 12px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text);
+  }
+  .entity li em { font-style: normal; color: var(--text-faint); }
+  .entity li.pk { color: var(--brass); }
+  .entity li.fk { color: var(--copper); }
+  .entity li .badge { font-size: 9.5px; padding: 0 5px; border-radius: 4px; border: 1px solid currentColor; margin-left: 6px; }
+  .entity li.group { color: var(--text-dim); }
+  .entity.solo header::after {
+    content: "singleton";
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--sage);
+    border: 1px solid rgba(147,184,142,0.4);
+    border-radius: 4px;
+    padding: 0 5px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ve-fig .ve-card, .ve-fig .entity { animation: rise .5s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  }
+  .render .ve-card, .render .entity { animation: none !important; }
+</style>
+</head>
+<body>
+<main class="page">
+
+  <header class="hero">
+    <div class="anvil" aria-hidden="true">
+      <svg viewBox="0 0 48 48" fill="none" stroke="#13100d" stroke-width="3" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M6 16h26c0 6 4 9 10 9v3H30l-3 5v5h6v4H13v-4h6v-5l-4-5c-5 0-9-4-9-9z"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Hefesto <em>architecture</em></h1>
+      <p>Data acquisition for edge devices: one Postgres-backed Django core, protocol plugins, and a task scheduler, all packed into docker-compose on a single box.</p>
+    </div>
+    <div class="legend" aria-label="Legend">
+      <span><i style="color: var(--copper)"></i>control / runs</span>
+      <span><i style="color: var(--brass)"></i>SQL / storage</span>
+      <span><i style="color: var(--steel)"></i>HTTP proxy</span>
+      <span><i style="color: var(--sage)"></i>external I/O</span>
+      <span><i class="dash" style="color: var(--sage)"></i>inbound / async</span>
+      <span><i class="dash" style="color: var(--copper)"></i>instructions</span>
+    </div>
+  </header>
+
+  <!-- ===================================================== 01 -->
+  <figure class="ve-fig" id="component" data-wires='[
+    {"from":"browser","to":"web","kind":"proxy","label":":80"},
+    {"from":"web","to":"webapp","kind":"proxy","label":":8000"},
+    {"from":"web","to":"grafana","kind":"proxy","label":":3000","fromSide":"right","toSide":"top","fromFrac":0.85,"toFrac":0.2,"t":0.78},
+    {"from":"web","to":"static","kind":"proxy","label":"/hefesto/static/","fromSide":"bottom","toSide":"top","fromFrac":0.3},
+    {"from":"webapp","to":"postgres","kind":"store","fromSide":"right","toSide":"top","fromFrac":0.7,"toFrac":0.35},
+    {"from":"grafana","to":"postgres","kind":"store","label":"SQL"},
+    {"from":"processor","to":"postgres","kind":"store","fromSide":"top","toSide":"bottom"},
+    {"from":"migrate","to":"postgres","kind":"store","label":"migrate","fromSide":"right","toSide":"left","toFrac":0.75,"fromFrac":0.35},
+    {"from":"migrate","to":"static","kind":"store","label":"collectstatic","fromSide":"left","toSide":"bottom"},
+    {"from":"webapp","to":"wpa","kind":"ext","label":"Wi-Fi config","fromSide":"right","toSide":"left","fromFrac":0.3},
+    {"from":"processor","to":"field","kind":"ext","label":"serial · TCP 502","both":true,"fromSide":"right","toSide":"left","fromFrac":0.2},
+    {"from":"processor","to":"http","kind":"ext","label":"data ⇄ instructions","both":true,"fromSide":"right","toSide":"left","fromFrac":0.5},
+    {"from":"processor","to":"azure","kind":"ext","label":"D2C ⇄ C2D","both":true,"fromSide":"right","toSide":"left","fromFrac":0.8}
+  ]'>
+    <div class="fig-head">
+      <div class="fig-num">01</div>
+      <div>
+        <h2>Component view</h2>
+        <p>Six containers on one device. Only nginx is published (port 80), and Postgres is the single source of truth for configuration, data, tasks and logs.</p>
+      </div>
+      <div class="fig-tag">docker-compose</div>
+    </div>
+
+    <div class="comp">
+      <div class="outside">
+        <div class="col-title">Operator</div>
+        <div class="ve-card k-ext" data-id="browser">
+          <div class="kind">browser</div>
+          <h3>Operator</h3>
+          <div class="meta">http://device/</div>
+        </div>
+      </div>
+
+      <div class="frame">
+        <div class="frame-label">edge device · docker-compose</div>
+        <div class="device">
+          <div class="ve-card k-edge" data-id="web" style="grid-column:1;grid-row:1">
+            <div class="kind">reverse proxy</div>
+            <h3>web</h3>
+            <div class="meta">nginx:alpine · :80</div>
+            <div class="chips"><span class="chip net-proxy">nginx_proxy</span></div>
+          </div>
+          <div class="ve-card k-app" data-id="webapp" style="grid-column:2;grid-row:1">
+            <div class="kind">django admin</div>
+            <h3>webapp</h3>
+            <div class="meta">gunicorn :8000 · privileged</div>
+            <div class="chips"><span class="chip net-proxy">nginx_proxy</span><span class="chip net-db">postgres</span></div>
+          </div>
+          <div class="ve-card k-store store" data-id="static" style="grid-column:1;grid-row:2">
+            <div class="kind">volume</div>
+            <h3>static</h3>
+            <div class="meta">collected assets</div>
+          </div>
+          <div class="ve-card k-edge" data-id="grafana" style="grid-column:2;grid-row:2">
+            <div class="kind">dashboards</div>
+            <h3>grafana</h3>
+            <div class="meta">6.6.0 · :3000</div>
+            <div class="chips"><span class="chip net-proxy">nginx_proxy</span><span class="chip net-db">postgres</span></div>
+          </div>
+          <div class="ve-card k-store store" data-id="postgres" style="grid-column:3;grid-row:2">
+            <div class="kind">database</div>
+            <h3>postgres</h3>
+            <div class="meta">10.7 · hefestodb · pgdata</div>
+            <div class="chips"><span class="chip net-db">postgres</span></div>
+          </div>
+          <div class="ve-card k-app" data-id="migrate" style="grid-column:2;grid-row:3">
+            <div class="kind">one-shot job</div>
+            <h3>migrate</h3>
+            <div class="meta">on every compose up</div>
+            <div class="chips"><span class="chip net-db">postgres</span></div>
+          </div>
+          <div class="ve-card k-app" data-id="processor" style="grid-column:3;grid-row:3">
+            <div class="kind">scheduler</div>
+            <h3>processor</h3>
+            <div class="meta">hefesto_processor · privileged</div>
+            <div class="chips"><span class="chip net-db">postgres</span><span class="chip hot">serial ports</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="external">
+        <div class="col-title">Host &amp; outside world</div>
+        <div class="ve-card k-sys" data-id="wpa">
+          <div class="kind">host file</div>
+          <h3>wpa_supplicant</h3>
+          <div class="meta">/etc/wpa_supplicant</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="ve-card k-ext" data-id="field">
+          <div class="kind">field bus</div>
+          <h3>Field devices</h3>
+          <div class="meta">Modbus RTU / TCP</div>
+        </div>
+        <div class="ve-card k-ext" data-id="http">
+          <div class="kind">https</div>
+          <h3>HTTP server</h3>
+          <div class="meta">Basic Auth · gzip</div>
+        </div>
+        <div class="ve-card k-ext" data-id="azure">
+          <div class="kind">cloud</div>
+          <h3>Azure IoT Hub</h3>
+          <div class="meta">REST · SAS token</div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- ===================================================== 02 -->
+  <figure class="ve-fig" id="software" data-wires='[
+    {"from":"task","to":"hp","kind":"store"},
+    {"from":"hp","to":"modbus","kind":"ctrl","fromSide":"bottom","toSide":"top","fromFrac":0.1,"toFrac":0.8},
+    {"from":"hp","to":"httpagent","kind":"ctrl","label":"runs on cron","fromSide":"bottom","toSide":"top","fromFrac":0.45},
+    {"from":"hp","to":"azureapp","kind":"ctrl","fromSide":"bottom","toSide":"top","fromFrac":0.8},
+    {"from":"modbus","to":"timeserie","kind":"store","label":"ModbusTimeSerie","fromSide":"bottom","toSide":"top","fromFrac":0.35,"toFrac":0.35,"t":0.3},
+    {"from":"httpagent","to":"services","kind":"ctrl","fromSide":"bottom","toSide":"top","toFrac":0.25},
+    {"from":"azureapp","to":"services","kind":"ctrl","fromSide":"bottom","toSide":"top","toFrac":0.75},
+    {"from":"services","to":"timeserie","kind":"store","label":"mark exported"},
+    {"from":"services","to":"modbus","kind":"instr","label":"allowlisted updates","fromSide":"top","toSide":"bottom","fromFrac":0.08,"toFrac":0.8,"t":0.4}
+  ]'>
+    <div class="fig-head">
+      <div class="fig-num">02</div>
+      <div>
+        <h2>Software view</h2>
+        <p>Django apps around a small core. Plugins register a hidden <code>Task</code> in <code>AppConfig.ready()</code>, the processor runs them, and everything meets in <code>TimeSerie</code>.</p>
+      </div>
+      <div class="fig-tag">App/</div>
+    </div>
+
+    <div class="soft">
+      <div class="ve-card k-store store" data-id="task" style="grid-column:1;grid-row:1">
+        <div class="kind">hefesto_core · model</div>
+        <h3>Task</h3>
+        <div class="meta">name · command · cron_expression · enable · hidden</div>
+      </div>
+      <div class="ve-card k-app" data-id="hp" style="grid-column:2 / 4;grid-row:1">
+        <div class="kind">hefesto_core · manage.py hefesto_processor</div>
+        <h3>TaskReconciler + APScheduler</h3>
+        <div class="desc">Polls enabled tasks every 30 s, diffs them against scheduled jobs by (name, command, cron) and runs each command in a subprocess, in UTC.</div>
+      </div>
+
+      <div class="ve-card k-app" data-id="modbus" style="grid-column:1;grid-row:2">
+        <div class="kind">acquisition plugin</div>
+        <h3>hefesto_modbus</h3>
+        <div class="meta">modbus_daemon</div>
+        <ul class="model-list"><li><b>Consulta</b> · request &amp; link</li><li><b>VariableLectura</b> · decode map</li><li><b>VariableEscritura</b> · write expressions</li></ul>
+        <div class="chips"><span class="chip hot">RTU</span><span class="chip hot">TCP</span><span class="chip">fn 3 · 4 · 6 · 16</span></div>
+      </div>
+      <div class="ve-card k-app" data-id="httpagent" style="grid-column:2;grid-row:2">
+        <div class="kind">transmission plugin</div>
+        <h3>hefesto_http_agent</h3>
+        <div class="meta">http_send_data</div>
+        <ul class="model-list"><li><b>Client</b> · https url, auth, gzip</li><li><b>Header</b> · extra headers</li></ul>
+        <div class="chips"><span class="chip">POST JSON</span><span class="chip">https only</span></div>
+      </div>
+      <div class="ve-card k-app" data-id="azureapp" style="grid-column:3;grid-row:2">
+        <div class="kind">transmission plugin</div>
+        <h3>hefesto_azure_iothub</h3>
+        <div class="meta">azure_send_data · azure_get_data</div>
+        <ul class="model-list"><li><b>Client</b> · connection string, intervals</li></ul>
+        <div class="chips"><span class="chip">D2C events</span><span class="chip">C2D complete / reject / abandon</span></div>
+      </div>
+
+      <div class="frame core-frame" style="grid-row:3">
+        <div class="frame-label bottom">hefesto_core · shared storage</div>
+        <div class="ve-card k-store store" data-id="timeserie">
+          <div class="kind">model</div>
+          <h3>TimeSerie</h3>
+          <div class="meta">time · name · value (json) · plugin · context · exported</div>
+          <div class="chips"><span class="chip net-db">newest 10 000 kept</span></div>
+        </div>
+        <div class="ve-card k-app" data-id="services">
+          <div class="kind">core_services</div>
+          <h3>get_data2send() · process_message_from_server()</h3>
+          <div class="desc">Batches the newest 1000 unexported points with a success callback. Applies server instructions only inside <code>HEFESTO_SERVER_INSTRUCTIONS</code>, atomically, all-or-nothing.</div>
+        </div>
+      </div>
+
+      <div class="system">
+        <div class="col-title">System apps</div>
+        <div class="ve-card k-sys" data-id="network">
+          <div class="kind">admin-driven</div>
+          <h3>hefesto_network</h3>
+          <div class="meta">Wifi → wpa_supplicant.conf</div>
+          <div class="desc">Validated, hex-encoded, atomic write on save.</div>
+        </div>
+        <div class="ve-card k-sys" data-id="logging">
+          <div class="kind">log handler</div>
+          <h3>hefesto_logging</h3>
+          <div class="meta">Log · DatabaseLogHandler</div>
+          <div class="desc">Every INFO+ record from every process, visible in the admin. Newest 5 000 kept.</div>
+        </div>
+        <div class="ve-card k-sys" data-id="identity">
+          <div class="kind">hefesto_core · singleton</div>
+          <h3>DeviceConfiguration</h3>
+          <div class="meta">hefesto_id → HEFESTO_ID</div>
+          <div class="desc">Falls back to the CPU serial.</div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+  <!-- ===================================================== 03 -->
+  <figure class="ve-fig" id="scheduling" data-wires='[
+    {"from":"s1","to":"s2","kind":"store","label":"every 30 s"},
+    {"from":"s2","to":"s3","kind":"ctrl","label":"sync jobs"},
+    {"from":"s3","to":"s4","kind":"ctrl","label":"cron (UTC)"},
+    {"from":"s4","to":"s1","kind":"instr","label":"exit code + stderr → Log","fromSide":"bottom","toSide":"bottom","curve":80}
+  ]'>
+    <div class="fig-head">
+      <div class="fig-num">03</div>
+      <div>
+        <h2>Task scheduling</h2>
+        <p>The processor container is a reconcile loop. Anything with a cron expression in the <code>Task</code> table runs, including your own shell commands.</p>
+      </div>
+      <div class="fig-tag">hefesto_processor</div>
+    </div>
+
+    <div class="sched">
+      <div class="ve-card k-store" data-id="s1">
+        <span class="step">1</span>
+        <div class="kind">postgres</div>
+        <h3>Task table</h3>
+        <div class="desc">Rows with <code>enable=True</code>. Plugins upsert their own hidden rows on start; operators add visible ones in the admin.</div>
+      </div>
+      <div class="ve-card k-app" data-id="s2">
+        <span class="step">2</span>
+        <div class="kind">TaskReconciler</div>
+        <h3>Diff by fingerprint</h3>
+        <div class="desc">(name, command, cron). Unchanged tasks are left alone; invalid cron is logged and unscheduled.</div>
+      </div>
+      <div class="ve-card k-app" data-id="s3">
+        <span class="step">3</span>
+        <div class="kind">APScheduler</div>
+        <h3>Background jobs</h3>
+        <div class="desc">One job per task, first run immediately, then on schedule. One instance at a time.</div>
+      </div>
+      <div class="ve-card k-ext" data-id="s4">
+        <span class="step">4</span>
+        <div class="kind">subprocess</div>
+        <h3>manage.py &lt;command&gt;</h3>
+        <div class="desc">Runs in <code>/usr/src/hefesto</code> with the app's environment.</div>
+      </div>
+    </div>
+
+    <div class="task-table">
+      <table>
+        <thead><tr><th>Task</th><th>Command</th><th>Cron</th><th>Owner · behaviour</th></tr></thead>
+        <tbody>
+          <tr><td>modbus_daemon</td><td>python manage.py modbus_daemon</td><td>*/1 * * * *</td><td>hefesto_modbus · polls due requests in a loop</td></tr>
+          <tr><td>http_send_data</td><td>python manage.py http_send_data</td><td>*/1 * * * *</td><td>hefesto_http_agent · loops while enabled</td></tr>
+          <tr><td>azure_iothub_send_data</td><td>python manage.py azure_send_data</td><td>*/1 * * * *</td><td>hefesto_azure_iothub · device-to-cloud loop</td></tr>
+          <tr><td>azure_iothub_get_data</td><td>python manage.py azure_get_data</td><td>*/1 * * * *</td><td>hefesto_azure_iothub · cloud-to-device polling</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="sched-notes">
+      <div class="note"><b>Self-healing.</b> Plugin commands loop forever; the per-minute cron only matters when one exits or crashes, so it acts as a supervisor.</div>
+      <div class="note"><b>Live edits.</b> Changing, disabling or deleting a task in the admin takes effect on the next 30 s pass, with no restart.</div>
+      <div class="note"><b>Housekeeping.</b> <code>delete_old_timeseries</code> and <code>delete_old_logs</code> exist but are not scheduled until you add them.</div>
+    </div>
+  </figure>
+
+  <!-- ===================================================== 04 -->
+  <figure class="ve-fig" id="dataflow">
+    <div class="fig-head">
+      <div class="fig-num">04</div>
+      <div>
+        <h2>Data flow</h2>
+        <p>From a register on the field bus to a dashboard and a remote server, and back again as an instruction.</p>
+      </div>
+      <div class="fig-tag">end to end</div>
+    </div>
+
+    <div class="lanes">
+      <div class="actors">
+        <div class="actor" style="--accent: var(--sage)"><b>Field device</b><span>slave 1..255</span></div>
+        <div class="actor" style="--accent: var(--copper)"><b>modbus_daemon</b><span>processor</span></div>
+        <div class="actor" style="--accent: var(--brass)"><b>PostgreSQL</b><span>hefestodb</span></div>
+        <div class="actor" style="--accent: var(--copper)"><b>Sender</b><span>http · azure</span></div>
+        <div class="actor" style="--accent: var(--sage)"><b>Remote server</b><span>https / IoT Hub</span></div>
+        <div class="actor" style="--accent: var(--steel)"><b>Grafana</b><span>dashboards</span></div>
+      </div>
+
+      <div class="lane-body">
+        <div class="lifelines"><div></div><div></div><div></div><div></div><div></div><div></div></div>
+
+        <div class="phase" style="--accent: var(--copper); grid-row: 1"><div class="rail"></div><div class="phase-name">acquire</div></div>
+        <div class="steps" style="grid-row: 1; --accent: var(--copper)">
+          <div class="msg" data-from="2" data-to="3"><div class="text"><span class="num">1</span>due requests <code>habilitada · proximo_request &lt; now</code></div><div class="arrow"></div></div>
+          <div class="msg" data-from="2" data-to="1" style="--accent: var(--sage)"><div class="text"><span class="num">2</span>request frame <code>fn 3/4 read · 6/16 write</code></div><div class="arrow"></div></div>
+          <div class="msg async" data-from="1" data-to="2" style="--accent: var(--sage)"><div class="text"><span class="num">3</span>response frame</div><div class="arrow"></div></div>
+          <div class="msg self" data-at="2"><div class="box"><span class="num">4</span>length · CRC · decode · <code>(raw × escala) + offset</code></div></div>
+          <div class="msg" data-from="2" data-to="3" style="--accent: var(--brass)"><div class="text"><span class="num">5</span>insert ModbusTimeSerie <code>exported = false</code></div><div class="arrow"></div></div>
+        </div>
+
+        <div class="phase" style="--accent: var(--steel); grid-row: 2"><div class="rail"></div><div class="phase-name">view</div></div>
+        <div class="steps" style="grid-row: 2; --accent: var(--steel)">
+          <div class="msg" data-from="6" data-to="3"><div class="text"><span class="num">6</span>SQL over <code>hefesto_core_timeserie</code></div><div class="arrow"></div></div>
+        </div>
+
+        <div class="phase" style="--accent: var(--sage); grid-row: 3"><div class="rail"></div><div class="phase-name">transmit</div></div>
+        <div class="steps" style="grid-row: 3; --accent: var(--brass)">
+          <div class="msg" data-from="4" data-to="3"><div class="text"><span class="num">7</span>get_data2send() <code>newest 1000 unexported</code></div><div class="arrow"></div></div>
+          <div class="msg" data-from="4" data-to="5" style="--accent: var(--sage)"><div class="text"><span class="num">8</span>POST <code>{HEFESTO_ID, TIMESERIES}</code></div><div class="arrow"></div></div>
+          <div class="msg async" data-from="5" data-to="4" style="--accent: var(--copper)"><div class="text"><span class="num">9</span>2xx + optional <code>{"models": …}</code></div><div class="arrow"></div></div>
+          <div class="msg" data-from="4" data-to="3"><div class="text"><span class="num">10</span>mark exported · apply allowlisted instructions</div><div class="arrow"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-foot">
+      <div class="payload">
+        <div class="col-title">Payload · step 8</div>
+<pre>{
+  <span class="k">"HEFESTO_ID"</span>: <span class="s">"plant-a-gateway-01"</span>,
+  <span class="k">"TIMESERIES"</span>: [{
+    <span class="k">"timestamp"</span>: <span class="s">"2026-01-01 12:00:00+00:00"</span>,
+    <span class="k">"var-name"</span>: <span class="s">"METER__1__VOLTAGE"</span>,
+    <span class="k">"value"</span>: 120.5,
+    <span class="k">"plugin"</span>: <span class="s">"MODBUS RTU/SERIAL"</span>,
+    <span class="k">"context"</span>: {<span class="k">"request"</span>: <span class="s">"meter"</span>, <span class="k">"device"</span>: 1}
+  }]
+}</pre>
+      </div>
+      <div class="payload">
+        <div class="col-title">Instruction · step 9</div>
+<pre>{
+  <span class="k">"models"</span>: {
+    <span class="k">"update"</span>: [{
+      <span class="k">"name"</span>: <span class="s">"hefesto_modbus.Consulta"</span>,
+      <span class="k">"filter"</span>: {<span class="k">"nombre"</span>: <span class="s">"meter"</span>},
+      <span class="k">"fields"</span>: {<span class="k">"intervalo_muestreo"</span>: 60}
+    }]
+  }
+}</pre>
+      </div>
+    </div>
+  </figure>
+
+  <!-- ===================================================== 05 -->
+  <figure class="ve-fig" id="database" data-wires='[
+    {"from":"e-timeserie","to":"e-mts","kind":"store","label":"extends 1 : 1","fromSide":"right","toSide":"left","toFrac":0.4},
+    {"from":"e-consulta","to":"e-ve","kind":"ctrl","label":"1 : n","fromSide":"right","toSide":"left","fromFrac":0.06},
+    {"from":"e-consulta","to":"e-vl","kind":"ctrl","label":"1 : n","fromSide":"right","toSide":"left","fromFrac":0.3,"toFrac":0.12},
+    {"from":"e-vl","to":"e-mts","kind":"ctrl","label":"0..1 : n","fromSide":"bottom","toSide":"top"},
+    {"from":"e-http","to":"e-header","kind":"ctrl","label":"1 : n","fromSide":"bottom","toSide":"top"}
+  ]'>
+    <div class="fig-head">
+      <div class="fig-num">05</div>
+      <div>
+        <h2>Database model</h2>
+        <p>One Postgres database shared by every app. Singletons hold exactly one row, and <code>ModbusTimeSerie</code> extends <code>TimeSerie</code> through multi-table inheritance.</p>
+      </div>
+      <div class="fig-tag">hefestodb</div>
+    </div>
+
+    <div class="db">
+      <div class="frame quiet">
+        <div class="frame-label">hefesto_core</div>
+        <div class="zone-stack">
+          <div class="entity solo"><header><b>DeviceConfiguration</b></header><ul>
+            <li class="pk"><span>id</span><em>int</em></li>
+            <li><span>hefesto_id</span><em>char</em></li>
+          </ul></div>
+          <div class="entity"><header><b>Task</b><span>table</span></header><ul>
+            <li class="pk"><span>id</span><em>int</em></li>
+            <li><span>name</span><em>char</em></li>
+            <li><span>command</span><em>char</em></li>
+            <li><span>cron_expression</span><em>char</em></li>
+            <li><span>enable</span><em>bool</em></li>
+            <li><span>hidden</span><em>bool</em></li>
+            <li><span>created · updated</span><em>datetime</em></li>
+          </ul></div>
+          <div class="entity" data-id="e-timeserie"><header><b>TimeSerie</b><span>table</span></header><ul>
+            <li class="pk"><span>id</span><em>int</em></li>
+            <li><span>time</span><em>datetime</em></li>
+            <li><span>name</span><em>char</em></li>
+            <li><span>value</span><em>jsonb</em></li>
+            <li><span>plugin</span><em>char</em></li>
+            <li><span>context</span><em>jsonb</em></li>
+            <li><span>exported</span><em>bool</em></li>
+            <li><span>created · updated</span><em>datetime</em></li>
+          </ul></div>
+        </div>
+      </div>
+
+      <div class="frame quiet">
+        <div class="frame-label">hefesto_modbus</div>
+        <div class="modbus-grid">
+          <div class="entity" data-id="e-consulta"><header><b>Consulta</b><span>request</span></header><ul>
+            <li class="pk"><span>id</span><em>int</em></li>
+            <li><span>nombre</span><em>char</em></li>
+            <li><span>habilitada</span><em>bool</em></li>
+            <li><span>dispositivos</span><em>char</em></li>
+            <li><span>codigo_funcion</span><em>int</em></li>
+            <li><span>registro_inicio</span><em>int</em></li>
+            <li><span>numero_registros</span><em>int</em></li>
+            <li><span>tiempo_espera</span><em>float</em></li>
+            <li><span>intervalo_muestreo</span><em>int</em></li>
+            <li><span>proximo_request</span><em>datetime</em></li>
+            <li><span>tipo_conexion</span><em>char</em></li>
+            <li class="group"><span>puerto_serial</span><em>char</em></li>
+            <li class="group"><span>baudrate</span><em>int</em></li>
+            <li class="group"><span>numero_bytes</span><em>char</em></li>
+            <li class="group"><span>paridad</span><em>char</em></li>
+            <li class="group"><span>bit_parada</span><em>char</em></li>
+            <li class="group"><span>ip</span><em>inet</em></li>
+            <li class="group"><span>puerto_tcp</span><em>int</em></li>
+          </ul></div>
+          <div class="zone-stack">
+            <div class="entity" data-id="e-ve"><header><b>VariableEscritura</b><span>write</span></header><ul>
+              <li class="pk"><span>id</span><em>int</em></li>
+              <li class="fk"><span>consulta_id<span class="badge">FK</span></span><em>int</em></li>
+              <li><span>nombre</span><em>char</em></li>
+              <li><span>expresion</span><em>text</em></li>
+              <li><span>tipo_dato · byte_order</span><em>char</em></li>
+            </ul></div>
+            <div class="entity" data-id="e-vl"><header><b>VariableLectura</b><span>read</span></header><ul>
+              <li class="pk"><span>id</span><em>int</em></li>
+              <li class="fk"><span>consulta_id<span class="badge">FK</span></span><em>int</em></li>
+              <li><span>nombre</span><em>char</em></li>
+              <li><span>tipo_dato · byte_order</span><em>char</em></li>
+              <li><span>longitud_texto</span><em>int</em></li>
+              <li><span>desplazamiento</span><em>int</em></li>
+              <li><span>cantidad</span><em>int</em></li>
+              <li><span>escala · offset</span><em>float</em></li>
+            </ul></div>
+            <div class="entity" data-id="e-mts"><header><b>ModbusTimeSerie</b><span>table</span></header><ul>
+              <li class="pk"><span>timeserie_ptr_id<span class="badge">PK·FK</span></span><em>int</em></li>
+              <li class="fk"><span>variable_id<span class="badge">FK</span></span><em>int</em></li>
+              <li><span>dev_id</span><em>int</em></li>
+              <li><span>request_raw · response_raw</span><em>char</em></li>
+              <li><span>crc_ok</span><em>bool</em></li>
+            </ul></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="zone-stack">
+        <div class="frame quiet">
+          <div class="frame-label">hefesto_http_agent</div>
+          <div class="zone-stack">
+            <div class="entity solo" data-id="e-http"><header><b>Client</b></header><ul>
+              <li class="pk"><span>id</span><em>int</em></li>
+              <li><span>url</span><em>https</em></li>
+              <li><span>username · password</span><em>char</em></li>
+              <li><span>habilitado</span><em>bool</em></li>
+              <li><span>gzip_habilitado</span><em>bool</em></li>
+              <li><span>tiempo_entre_envios</span><em>int</em></li>
+            </ul></div>
+            <div class="entity" data-id="e-header"><header><b>Header</b><span>table</span></header><ul>
+              <li class="pk"><span>id</span><em>int</em></li>
+              <li class="fk"><span>config_id<span class="badge">FK</span></span><em>int</em></li>
+              <li><span>key · value</span><em>text</em></li>
+            </ul></div>
+          </div>
+        </div>
+        <div class="frame quiet">
+          <div class="frame-label">hefesto_azure_iothub</div>
+          <div class="entity solo"><header><b>Client</b></header><ul>
+            <li class="pk"><span>id</span><em>int</em></li>
+            <li><span>connection_string</span><em>text</em></li>
+            <li><span>habilitado</span><em>bool</em></li>
+            <li><span>gzip_habilitado</span><em>bool</em></li>
+            <li><span>tiempo_entre_envios</span><em>int</em></li>
+            <li><span>tiempo_entre_peticiones</span><em>int</em></li>
+          </ul></div>
+        </div>
+      </div>
+
+      <div class="zone-stack">
+        <div class="frame quiet">
+          <div class="frame-label">hefesto_network</div>
+          <div class="zone-stack">
+            <div class="entity solo"><header><b>Wifi</b></header><ul>
+              <li class="pk"><span>id</span><em>int</em></li>
+              <li><span>interface</span><em>char</em></li>
+              <li><span>wifi_ssid · password</span><em>char</em></li>
+              <li class="group"><span>mode</span><em>char</em></li>
+              <li class="group"><span>ip_address · mask</span><em>inet</em></li>
+              <li class="group"><span>ip_gateway · dns</span><em>inet</em></li>
+            </ul></div>
+            <div class="entity solo"><header><b>Ethernet</b></header><ul>
+              <li class="pk"><span>id</span><em>int</em></li>
+              <li><span>interface</span><em>char</em></li>
+              <li class="group"><span>mode · ip_*</span><em>…</em></li>
+            </ul></div>
+          </div>
+        </div>
+        <div class="frame quiet">
+          <div class="frame-label">hefesto_logging</div>
+          <div class="entity"><header><b>Log</b><span>table</span></header><ul>
+            <li class="pk"><span>id</span><em>int</em></li>
+            <li><span>timestamp</span><em>datetime</em></li>
+            <li><span>modulo</span><em>char</em></li>
+            <li><span>nivel</span><em>smallint</em></li>
+            <li><span>mensaje · trace</span><em>text</em></li>
+          </ul></div>
+        </div>
+      </div>
+    </div>
+  </figure>
+
+</main>
+
+<script>
+(() => {
+  const COLORS = {
+    ctrl: "var(--copper)",
+    store: "var(--brass)",
+    proxy: "var(--steel)",
+    ext: "var(--sage)",
+    instr: "var(--copper)",
+  };
+  const ASYNC = new Set(["instr"]);
+  const NORMAL = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] };
+  const SVG = "http://www.w3.org/2000/svg";
+
+  function resolveColor(fig, value) {
+    const probe = document.createElement("span");
+    probe.style.color = value;
+    fig.appendChild(probe);
+    const c = getComputedStyle(probe).color;
+    probe.remove();
+    return c;
+  }
+
+  function anchor(box, side, frac) {
+    switch (side) {
+      case "top": return [box.x + box.w * frac, box.y];
+      case "bottom": return [box.x + box.w * frac, box.y + box.h];
+      case "left": return [box.x, box.y + box.h * frac];
+      default: return [box.x + box.w, box.y + box.h * frac];
+    }
+  }
+
+  function autoSides(a, b) {
+    const dx = (b.x + b.w / 2) - (a.x + a.w / 2);
+    const dy = (b.y + b.h / 2) - (a.y + a.h / 2);
+    if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? ["right", "left"] : ["left", "right"];
+    return dy > 0 ? ["bottom", "top"] : ["top", "bottom"];
+  }
+
+  function drawFigure(fig) {
+    const spec = fig.dataset.wires;
+    if (!spec) return;
+    const wires = JSON.parse(spec);
+    fig.querySelectorAll(":scope > .ve-wires, :scope > .ve-labels").forEach((n) => n.remove());
+    const origin = fig.getBoundingClientRect();
+    const boxOf = (id) => {
+      const el = fig.querySelector(`[data-id="${id}"]`);
+      const r = el.getBoundingClientRect();
+      return { el, x: r.left - origin.left, y: r.top - origin.top, w: r.width, h: r.height };
+    };
+
+    const svg = document.createElementNS(SVG, "svg");
+    svg.classList.add("ve-wires");
+    const defs = document.createElementNS(SVG, "defs");
+    svg.appendChild(defs);
+    const labels = document.createElement("div");
+    labels.className = "ve-labels";
+
+    const markers = {};
+    const markerFor = (color) => {
+      if (markers[color]) return markers[color];
+      const id = `m-${fig.id}-${Object.keys(markers).length}`;
+      const m = document.createElementNS(SVG, "marker");
+      m.setAttribute("id", id);
+      m.setAttribute("viewBox", "0 0 10 10");
+      m.setAttribute("refX", "9");
+      m.setAttribute("refY", "5");
+      m.setAttribute("markerWidth", "7");
+      m.setAttribute("markerHeight", "7");
+      m.setAttribute("orient", "auto-start-reverse");
+      const p = document.createElementNS(SVG, "path");
+      p.setAttribute("d", "M0,0 L10,5 L0,10 z");
+      p.setAttribute("fill", color);
+      m.appendChild(p);
+      defs.appendChild(m);
+      return (markers[color] = id);
+    };
+
+    wires.forEach((w) => {
+      const a = boxOf(w.from);
+      const b = boxOf(w.to);
+      const [autoFrom, autoTo] = autoSides(a, b);
+      const fromSide = w.fromSide || autoFrom;
+      const toSide = w.toSide || autoTo;
+      const p0 = anchor(a, fromSide, w.fromFrac ?? 0.5);
+      const p1 = anchor(b, toSide, w.toFrac ?? 0.5);
+      const dist = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]);
+      const k = w.curve ?? Math.max(36, Math.min(160, dist * 0.42));
+      const n0 = NORMAL[fromSide];
+      const n1 = NORMAL[toSide];
+      const c0 = [p0[0] + n0[0] * k, p0[1] + n0[1] * k];
+      const c1 = [p1[0] + n1[0] * k, p1[1] + n1[1] * k];
+      const color = resolveColor(fig, COLORS[w.kind] || COLORS.ctrl);
+
+      const path = document.createElementNS(SVG, "path");
+      path.setAttribute("d", `M${p0} C${c0} ${c1} ${p1}`);
+      path.classList.add("wire");
+      if (ASYNC.has(w.kind) || w.async) path.classList.add("async");
+      path.setAttribute("stroke", color);
+      const marker = `url(#${markerFor(color)})`;
+      path.setAttribute("marker-end", marker);
+      if (w.both) path.setAttribute("marker-start", marker);
+      path.dataset.from = w.from;
+      path.dataset.to = w.to;
+      svg.appendChild(path);
+
+      if (w.label) {
+        const t = w.t ?? 0.5;
+        const u = 1 - t;
+        let x = u * u * u * p0[0] + 3 * u * u * t * c0[0] + 3 * u * t * t * c1[0] + t * t * t * p1[0];
+        let y = u * u * u * p0[1] + 3 * u * u * t * c0[1] + 3 * u * t * t * c1[1] + t * t * t * p1[1];
+        const label = document.createElement("div");
+        x += w.dx ?? 0;
+        y += w.dy ?? 0;
+        label.className = "ve-label";
+        label.textContent = w.label;
+        label.style.left = `${x}px`;
+        label.style.top = `${y}px`;
+        label.style.color = color;
+        label.dataset.from = w.from;
+        label.dataset.to = w.to;
+        labels.appendChild(label);
+      }
+    });
+
+    fig.appendChild(svg);
+    fig.appendChild(labels);
+  }
+
+  function layoutMessages() {
+    document.querySelectorAll(".lanes").forEach((lanes) => {
+      const lines = [...lanes.querySelectorAll(".lifelines > div")];
+      const steps = lanes.querySelector(".steps");
+      const base = steps.getBoundingClientRect().left;
+      const centers = lines.map((d) => {
+        const r = d.getBoundingClientRect();
+        return r.left + r.width / 2 - base;
+      });
+      lanes.querySelectorAll(".msg").forEach((msg) => {
+        if (msg.classList.contains("self")) {
+          msg.querySelector(".box").style.left = `${centers[msg.dataset.at - 1]}px`;
+          return;
+        }
+        const from = centers[msg.dataset.from - 1];
+        const to = centers[msg.dataset.to - 1];
+        const left = Math.min(from, to);
+        const width = Math.abs(to - from);
+        msg.classList.add(to > from ? "right" : "left");
+        const arrow = msg.querySelector(".arrow");
+        arrow.style.left = `${left}px`;
+        arrow.style.width = `${width}px`;
+        const text = msg.querySelector(".text");
+        text.style.left = `${left + 14}px`;
+      });
+    });
+  }
+
+  function wireFocus(fig) {
+    fig.querySelectorAll("[data-id]").forEach((card) => {
+      card.addEventListener("mouseenter", () => {
+        const id = card.dataset.id;
+        fig.classList.add("focus");
+        fig.querySelectorAll("path.wire, .ve-label").forEach((n) => {
+          n.classList.toggle("hot", n.dataset.from === id || n.dataset.to === id);
+        });
+      });
+      card.addEventListener("mouseleave", () => fig.classList.remove("focus"));
+    });
+  }
+
+  function drawAll() {
+    layoutMessages();
+    document.querySelectorAll(".ve-fig[data-wires]").forEach(drawFigure);
+  }
+
+  if (new URLSearchParams(location.search).has("render")) document.documentElement.classList.add("render");
+
+  document.fonts.ready.then(() => {
+    drawAll();
+    document.querySelectorAll(".ve-fig").forEach(wireFocus);
+    window.__diagramsReady = true;
+    setTimeout(drawAll, 650);
+  });
+  let pending;
+  window.addEventListener("resize", () => {
+    cancelAnimationFrame(pending);
+    pending = requestAnimationFrame(drawAll);
+  });
+})();
+</script>
+</body>
+</html>

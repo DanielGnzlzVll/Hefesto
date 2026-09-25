@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: hefestodb
       POSTGRES_USER: hefesto
-      POSTGRES_PASSWORD: H3f3st0_s3cr3t
+      POSTGRES_PASSWORD: ${HEFESTO_DB_PASSWORD:?HEFESTO_DB_PASSWORD must be set in .env}
     networks:
       - postgres
     restart: always
@@ -37,6 +37,7 @@ services:
       # - GF_PATHS_CONFIG:/usr/grafana/custom.ini
       - GF_PATHS_PROVISIONING=/usr/share/grafana/provisioning
       - GF_SERVER_ROOT_URL=http://localhost/grafana/
+      - HEFESTO_DB_PASSWORD=${HEFESTO_DB_PASSWORD:?HEFESTO_DB_PASSWORD must be set in .env}
     depends_on:
       - postgres
     deploy:
@@ -49,6 +50,8 @@ services:
     build: ./App
     image: hefesto
     command: python manage.py migrate
+    environment:
+      HEFESTO_DB_PASSWORD: ${HEFESTO_DB_PASSWORD:?HEFESTO_DB_PASSWORD must be set in .env}
     networks:
       - postgres
     links:
@@ -66,6 +69,8 @@ services:
     container_name: hefesto_web_app
     image: hefesto
     entrypoint: python manage.py runserver 0.0.0.0:8000 --insecure --noreload
+    environment:
+      HEFESTO_DB_PASSWORD: ${HEFESTO_DB_PASSWORD:?HEFESTO_DB_PASSWORD must be set in .env}
     networks:
       - nginx_proxy
       - postgres
@@ -89,6 +94,8 @@ services:
     container_name: hefesto_processor
     image: hefesto
     entrypoint: bash -c "python manage.py hefesto_processor"
+    environment:
+      HEFESTO_DB_PASSWORD: ${HEFESTO_DB_PASSWORD:?HEFESTO_DB_PASSWORD must be set in .env}
     networks:
       - postgres
     links:

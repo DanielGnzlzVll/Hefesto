@@ -55,6 +55,27 @@ sudo pip install docker-compose
 git clone https://github.com/DanielGnzlzVll/Hefesto 
 cd Hefesto
 ```
+## Variables de entorno
+Crear un archivo `.env` (no versionado) a partir de `.env.example`, con una contraseña unica por dispositivo:
+```bash
+echo "HEFESTO_DB_PASSWORD=$(openssl rand -hex 24)" > .env
+```
+
+| Variable | Requerida | Descripcion |
+|---|---|---|
+| `HEFESTO_DB_PASSWORD` | Si | Contraseña de PostgreSQL, usada por `postgres`, `grafana`, `migrate`, `webapp` y `processor`. La aplicacion no inicia sin ella. |
+| `HEFESTO_DB` | No | Nombre de la base de datos (por defecto `hefestodb`). |
+| `HEFESTO_DB_USER` | No | Usuario de la base de datos (por defecto `hefesto`). |
+| `HEFESTO_DB_HOST` | No | Host de la base de datos (por defecto `postgres`). |
+| `HEFESTO_DB_PORT` | No | Puerto de la base de datos. |
+| `DJANGO_SECRET_KEY` | No | Clave secreta de Django (por defecto se genera una aleatoria en cada inicio). |
+
+`POSTGRES_PASSWORD` solo se aplica al crear el volumen `pgdata`. Para cambiar la contraseña en un dispositivo ya desplegado:
+```bash
+docker-compose exec postgres psql -U hefesto -d hefestodb -c "ALTER USER hefesto WITH PASSWORD '<nueva>';"
+```
+y luego actualizar `HEFESTO_DB_PASSWORD` en `.env` y ejecutar `docker-compose up -d`.
+
 ## Iniciar
 ```bash
 docker-compose up

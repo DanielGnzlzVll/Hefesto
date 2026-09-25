@@ -2,7 +2,7 @@ import datetime
 import struct
 from unittest import mock
 
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.utils.timezone import now
 
 from hefesto_core import models as hmodels
@@ -287,6 +287,57 @@ class ObtenerConsultasTests(TestCase):
         self.assertEqual(list(services.obtener_consultas()), [first, later])
 
 
+class ProximoMuestreoTests(SimpleTestCase):
+    def at(self, hour, minute, second=0, microsecond=0):
+        return datetime.datetime(
+            2026, 9, 25, hour, minute, second, microsecond,
+            tzinfo=datetime.timezone.utc,
+        )
+
+    def test_aligns_to_next_interval_boundary(self):
+        self.assertEqual(
+            services.proximo_muestreo(300, self.at(10, 1, 13)),
+            self.at(10, 5),
+        )
+
+    def test_boundary_moves_to_following_one(self):
+        self.assertEqual(
+            services.proximo_muestreo(300, self.at(10, 55)),
+            self.at(11, 0),
+        )
+
+    def test_hour_boundary_is_sampled(self):
+        self.assertEqual(
+            services.proximo_muestreo(300, self.at(10, 58, 59, 999999)),
+            self.at(11, 0),
+        )
+
+    def test_late_processing_skips_missed_boundaries(self):
+        self.assertEqual(
+            services.proximo_muestreo(60, self.at(10, 3, 30)),
+            self.at(10, 4),
+        )
+
+    def test_hour_boundaries_align_to_local_time(self):
+        lima = datetime.timezone(datetime.timedelta(hours=-5))
+        desde = datetime.datetime(2026, 9, 25, 7, 40, tzinfo=lima)
+        self.assertEqual(
+            services.proximo_muestreo(3600, desde),
+            datetime.datetime(2026, 9, 25, 8, 0, tzinfo=lima),
+        )
+
+    @override_settings(TIME_ZONE="Asia/Kolkata")
+    def test_hour_boundaries_align_to_half_hour_offsets(self):
+        self.assertEqual(
+            services.proximo_muestreo(3600, self.at(10, 1)),
+            self.at(10, 30),
+        )
+
+    def test_zero_interval_samples_immediately(self):
+        desde = self.at(10, 1, 13)
+        self.assertEqual(services.proximo_muestreo(0, desde), desde)
+
+
 class ObtenerDriverTests(SimpleTestCase):
     def test_serial(self):
         consulta = models.Consulta(tipo_conexion="RTU/SERIAL")
@@ -421,8 +472,9 @@ class ProcesarConsultasTests(TestCase):
                 2: rtu(b"\x02\x03\x04\x00\x14\x00\x00"),
             }
         )
-        before = now()
-        services.procesar_consultas()
+        instante = now()
+        with mock.patch.object(services, "now", return_value=instante):
+            services.procesar_consultas()
 
         saved = models.ModbusTimeSerie.objects.values_list("name", "value")
         self.assertEqual(
@@ -430,9 +482,9 @@ class ProcesarConsultasTests(TestCase):
         )
         self.driver.__enter__.assert_called_once()
         self.consulta.refresh_from_db()
-        self.assertGreaterEqual(
+        self.assertEqual(
             self.consulta.proximo_request,
-            before + datetime.timedelta(seconds=60),
+            services.proximo_muestreo(60, instante),
         )
 
     def test_skips_missing_and_invalid_responses(self):

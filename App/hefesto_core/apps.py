@@ -6,4 +6,3 @@ class HefestoCoreConfig(AppConfig):
 
     def ready(self):
         from . import signals  # noqa
-        # signals.scheduler.start()

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 
 import os
 
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management.utils import get_random_secret_key
 
 
@@ -24,6 +25,13 @@ def get_hardware_serial():
     except:  # noqa
         cpuserial = "ERROR000000000"
     return cpuserial
+
+
+def get_required_env(name):
+    try:
+        return os.environ[name]
+    except KeyError:
+        raise ImproperlyConfigured(f"Environment variable {name} is required.")
 
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
@@ -108,7 +116,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("HEFESTO_DB", "hefestodb"),
         "USER": os.getenv("HEFESTO_DB_USER", "hefesto"),
-        "PASSWORD": os.getenv("HEFESTO_DB_PASSWORD", "H3f3st0_s3cr3t"),
+        "PASSWORD": get_required_env("HEFESTO_DB_PASSWORD"),
         "HOST": os.getenv("HEFESTO_DB_HOST", "postgres"),
         "PORT": os.getenv("HEFESTO_DB_PORT", ""),
     }

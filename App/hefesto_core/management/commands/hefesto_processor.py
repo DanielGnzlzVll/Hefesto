@@ -7,14 +7,11 @@ import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from django.core.management.base import BaseCommand
-from django.db.models.signals import post_delete, post_save
+from django.db import close_old_connections
 
 from ... import models
 
 logger = logging.getLogger(__name__)
-
-
-scheduler = BackgroundScheduler()
 
 
 class function_wrap:
@@ -23,65 +20,83 @@ class function_wrap:
         self.__name__ = command
 
     def __call__(self, *args, **kargs):
-        return subprocess.run(self.command, shell=True)
-
-
-# @receiver(post_delete, sender=models.Task, dispatch_uid="on_delete_task")
-def on_delete_task(sender, instance, **kwargs):
-    try:
-        scheduler.remove_job(str(instance))
-        logger.info(f"la tarea '{instance}' fue borrada correctamente")
-    except Exception as e:  # noqa
-        logger.error(f"la tarea '{instance}' no pudo ser borrada")
-
-
-# @receiver(post_save, sender=models.Task, dispatch_uid="on_save_task")
-def on_save_task(sender, instance, created, **kwargs):
-    if not created:
-        try:
-            scheduler.remove_job(str(instance))
-            logger.info(f"la tarea '{instance}' fue borrada correctamente")
-        except Exception as e:  # noqa
-            logger.error(f"la tarea '{instance}' no pudo ser borrada")
-            logger.exception(e)
-
-    if instance.enable:
-        try:
-            scheduler.add_job(
-                function_wrap(instance.command),
-                CronTrigger.from_crontab(
-                    instance.cron_expression, timezone=pytz.UTC
-                ),
-                id=str(instance),
-                next_run_time=datetime.datetime.now(tz=pytz.UTC),
+        result = subprocess.run(
+            self.command, shell=True, stderr=subprocess.PIPE, text=True
+        )
+        if result.returncode:
+            logger.error(
+                f"'{self.command}' termino con codigo {result.returncode}: "
+                f"{result.stderr}"
             )
-            logger.info(f"la tarea '{instance}' fue creada correctamente")
-        except Exception as e:
-            logger.error(f"la tarea '{instance}' no pudo ser creada")
-            logger.exception(e)
+        else:
+            logger.info(f"'{self.command}' termino con codigo 0")
+        return result
+
+
+class TaskReconciler:
+    def __init__(self, scheduler):
+        self.scheduler = scheduler
+        self.fingerprints = {}
+
+    def reconcile(self, tasks):
+        desired = {str(task.id): task for task in tasks}
+
+        for job in self.scheduler.get_jobs():
+            if job.id not in desired:
+                job.remove()
+                logger.info(f"la tarea '{job.name}' fue borrada")
+        for job_id in set(self.fingerprints) - set(desired):
+            del self.fingerprints[job_id]
+
+        for job_id, task in desired.items():
+            # Not `updated`: plugin AppConfig.ready() re-saves hidden tasks
+            # on every manage.py run, which would reschedule them each pass.
+            fingerprint = (task.name, task.command, task.cron_expression)
+            if self.fingerprints.get(job_id) == fingerprint:
+                continue
+            self.fingerprints[job_id] = fingerprint
+            self.schedule(job_id, task)
+
+    def schedule(self, job_id, task):
+        try:
+            trigger = CronTrigger.from_crontab(
+                task.cron_expression, timezone=pytz.UTC
+            )
+        except ValueError:
+            logger.exception(f"la tarea '{task}' no pudo ser programada")
+            if self.scheduler.get_job(job_id):
+                self.scheduler.remove_job(job_id)
+            return
+        self.scheduler.add_job(
+            function_wrap(task.command),
+            trigger,
+            id=job_id,
+            name=str(task),
+            replace_existing=True,
+            next_run_time=datetime.datetime.now(tz=pytz.UTC),
+        )
+        logger.info(f"la tarea '{task}' fue programada")
 
 
 class Command(BaseCommand):
     """Corre todos procesos de los plugins."""
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--interval",
+            type=int,
+            default=30,
+            help="Segundos entre cada sincronizacion con la base de datos.",
+        )
+
     def handle(self, *args, **options):
-        sheduler = BackgroundScheduler()
-        tasks = models.Task.objects.all()
-        for task in tasks:
-            sheduler.add_job(
-                function_wrap(task.command),
-                CronTrigger.from_crontab(
-                    task.cron_expression, timezone=pytz.UTC
-                ),
-                id=str(task),
-                next_run_time=datetime.datetime.now(tz=pytz.UTC),
-            )
-        post_delete.connect(
-            on_delete_task, sender=models.Task, dispatch_uid="on_delete_task"
-        )
-        post_save.connect(
-            on_save_task, sender=models.Task, dispatch_uid="on_save_task"
-        )
-        sheduler.start()
-        while 1:
-            time.sleep(1000)
+        scheduler = BackgroundScheduler(timezone=pytz.UTC)
+        scheduler.start()
+        reconciler = TaskReconciler(scheduler)
+        while True:
+            close_old_connections()
+            try:
+                reconciler.reconcile(models.Task.objects.filter(enable=True))
+            except Exception:
+                logger.exception("no se pudieron sincronizar las tareas")
+            time.sleep(options["interval"])

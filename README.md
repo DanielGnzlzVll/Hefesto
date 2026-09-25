@@ -11,6 +11,11 @@ It has a modular architecture that can be extended through plugins (Django apps)
 
 It uses [Grafana](https://grafana.com/) as its visualization tool.
 
+## Documentation
+
+* [Architecture](docs/architecture.md): containers, Django apps, task scheduling and data flow.
+* [Tutorials](docs/tutorials.md): step-by-step guides for every feature.
+
 ## To do:
 
 1. Write the documentation

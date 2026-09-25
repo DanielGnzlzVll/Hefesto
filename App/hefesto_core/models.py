@@ -1,5 +1,4 @@
 from apscheduler.triggers.cron import CronTrigger
-from django.contrib.postgres.fields import JSONField
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.timezone import now
@@ -23,10 +22,10 @@ class DeviceConfiguration(SingletonModel):
 class TimeSerie(models.Model):
     time = models.DateTimeField(default=now)
     name = models.CharField(max_length=50, blank=False, null=False)
-    value = JSONField(default=dict)
+    value = models.JSONField(default=dict)
     plugin = models.CharField(max_length=50, blank=False, null=False)
-    context = JSONField(null=True, blank=True, default=dict)
-    exported = models.NullBooleanField(null=True, default=False)
+    context = models.JSONField(null=True, blank=True, default=dict)
+    exported = models.BooleanField(null=True, default=False)
 
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)

@@ -3,7 +3,6 @@ import logging
 import subprocess
 import time
 
-import pytz
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from django.core.management.base import BaseCommand
@@ -60,7 +59,7 @@ class TaskReconciler:
     def schedule(self, job_id, task):
         try:
             trigger = CronTrigger.from_crontab(
-                task.cron_expression, timezone=pytz.UTC
+                task.cron_expression, timezone=datetime.timezone.utc
             )
         except ValueError:
             logger.exception(f"la tarea '{task}' no pudo ser programada")
@@ -73,7 +72,7 @@ class TaskReconciler:
             id=job_id,
             name=str(task),
             replace_existing=True,
-            next_run_time=datetime.datetime.now(tz=pytz.UTC),
+            next_run_time=datetime.datetime.now(tz=datetime.timezone.utc),
         )
         logger.info(f"la tarea '{task}' fue programada")
 
@@ -90,7 +89,7 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        scheduler = BackgroundScheduler(timezone=pytz.UTC)
+        scheduler = BackgroundScheduler(timezone=datetime.timezone.utc)
         scheduler.start()
         reconciler = TaskReconciler(scheduler)
         while True:

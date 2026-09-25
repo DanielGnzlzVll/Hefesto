@@ -135,10 +135,11 @@ class Consulta(models.Model):
         return self.nombre
 
     def save(self, *args, **kargs):
-        if self.codigo_funcion in ([6, 16]):
-            self.variablelectura_set.all().delete()
-        if self.codigo_funcion in ([3, 4]):
-            self.variableescritura_set.all().delete()
+        if self.pk is not None:
+            if self.codigo_funcion in ([6, 16]):
+                self.variablelectura_set.all().delete()
+            if self.codigo_funcion in ([3, 4]):
+                self.variableescritura_set.all().delete()
         super(Consulta, self).save(*args, **kargs)
 
     def clean(self):

@@ -3,7 +3,7 @@ version: '3.7'
 services:
   postgres:
     container_name: postgres_container
-    image: postgres:10.7-alpine
+    image: postgres:18-alpine
     environment:
       POSTGRES_DB: hefestodb
       POSTGRES_USER: hefesto
@@ -12,7 +12,7 @@ services:
       - postgres
     restart: always
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata18:/var/lib/postgresql
     deploy:
       resources:
         limits:
@@ -145,6 +145,6 @@ networks:
 volumes:
   grafana_data:
   hefesto:
-  pgdata:
+  pgdata18:
   static:
 

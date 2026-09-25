@@ -49,9 +49,10 @@ services:
   migrate:
     build: ./App
     image: hefesto
-    command: python manage.py migrate
+    command: bash -c "python manage.py collectstatic --noinput && python manage.py migrate"
     environment:
       HEFESTO_DB_PASSWORD: ${HEFESTO_DB_PASSWORD:?HEFESTO_DB_PASSWORD must be set in .env}
+      DJANGO_STATIC_ROOT: /var/www/hefesto/static
     networks:
       - postgres
     links:
@@ -60,6 +61,7 @@ services:
       - postgres
     volumes:
       - ./App:/usr/src/hefesto:z
+      - static:/var/www/hefesto/static
     deploy:
       resources:
         limits:
@@ -68,9 +70,10 @@ services:
   webapp:
     container_name: hefesto_web_app
     image: hefesto
-    entrypoint: python manage.py runserver 0.0.0.0:8000 --insecure --noreload
+    command: gunicorn project.wsgi:application --bind 0.0.0.0:8000 --workers 1 --threads 4
     environment:
       HEFESTO_DB_PASSWORD: ${HEFESTO_DB_PASSWORD:?HEFESTO_DB_PASSWORD must be set in .env}
+      DJANGO_ALLOWED_HOSTS:
     networks:
       - nginx_proxy
       - postgres
@@ -118,6 +121,7 @@ services:
     volumes:
       # la z (minuscula) permite el acceso a archivo protegidos por SELinux
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:z
+      - static:/var/www/hefesto/static:ro
     networks:
       - nginx_proxy
     links:
@@ -142,4 +146,5 @@ volumes:
   grafana_data:
   hefesto:
   pgdata:
+  static:
 

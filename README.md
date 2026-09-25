@@ -69,6 +69,8 @@ echo "HEFESTO_DB_PASSWORD=$(openssl rand -hex 24)" > .env
 | `HEFESTO_DB_HOST` | No | Database host (defaults to `postgres`). |
 | `HEFESTO_DB_PORT` | No | Database port. |
 | `DJANGO_SECRET_KEY` | No | Django secret key (defaults to a random one generated on each start). |
+| `DJANGO_ALLOWED_HOSTS` | No | Comma-separated allowed hosts (defaults to `localhost,127.0.0.1,hefesto,hefesto.local,192.168.1.212,192.168.137.212`). Add the IP or hostname used to reach the device. |
+| `DJANGO_DEBUG` | No | `1` to enable Django debug mode (off by default). |
 
 `POSTGRES_PASSWORD` only applies when the `pgdata` volume is created. To change the password on an already deployed device:
 ```bash
